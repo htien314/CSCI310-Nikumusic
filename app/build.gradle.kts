@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
     implementation(libs.material)
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     testImplementation(libs.junit)
 

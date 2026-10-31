@@ -50,7 +50,8 @@
 
         <argument
             android:name="riderUid"
-            app:argType="string" />
+            app:argType="string"
+            />
 
     </fragment>
     <fragment
@@ -71,7 +72,7 @@
 
     <fragment
         android:id="@+id/historyFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.history.HistoryFragment"
         android:label="Ride History">
         <argument android:name="title" app:argType="string" android:defaultValue="Ride History" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
