@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">TrojanRideShare</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_search">Search</string>
+    <string name="tab_create">Create</string>
+    <string name="tab_my_rides">My Rides</string>
+    <string name="tab_profile">Profile</string>
+
+    <!-- Shared -->
+    <string name="retry">Retry</string>
+    <string name="placeholder_owner">Coming soon (owner: %1$s)</string>
+</resources>

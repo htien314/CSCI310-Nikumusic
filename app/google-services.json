@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "903943917351",
+    "project_id": "trojanrideshare-672ad",
+    "storage_bucket": "trojanrideshare-672ad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:903943917351:android:b577203ba75a0ff2f3e302",
+        "android_client_info": {
+          "package_name": "com.example.trojanrideshare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6a9DUHhG1uKJhroBb86FHR71hOXp4kHA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
