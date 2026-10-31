@@ -8,7 +8,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
     app:startDestination="@id/searchFragment">
-
     <!-- Bottom navigation tabs -->
     <fragment
         android:id="@+id/searchFragment"
@@ -45,7 +44,7 @@
     <!-- Account (Riya) -->
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.auth.LoginFragment"
         android:label="Log In">
         <argument android:name="title" app:argType="string" android:defaultValue="Log In" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
@@ -53,7 +52,7 @@
 
     <fragment
         android:id="@+id/registerFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.auth.RegisterFragment"
         android:label="Sign Up">
         <argument android:name="title" app:argType="string" android:defaultValue="Sign Up" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
