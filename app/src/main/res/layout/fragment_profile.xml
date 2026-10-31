@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:text="My Profile"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <!-- Visible when signed out -->
+        <LinearLayout
+            android:id="@+id/profileSignedOut"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Log in to view your profile."
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/profileLoginButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Log In" />
+
+            <Button
+                android:id="@+id/profileRegisterButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Create Account" />
+        </LinearLayout>
+
+        <!-- Visible when signed in -->
+        <LinearLayout
+            android:id="@+id/profileSignedIn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/profileFullName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/profileEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" />
+
+            <TextView
+                android:id="@+id/profileUscId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:id="@+id/profileGraduationYear"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" />
+
+            <EditText
+                android:id="@+id/profileNickname"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="16dp"
+                android:hint="Nickname"
+                android:inputType="textPersonName" />
+
+            <Button
+                android:id="@+id/profileSaveNicknameButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Save Nickname" />
+
+            <Button
+                android:id="@+id/profileLogoutButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Log Out" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/profileMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:accessibilityLiveRegion="polite" />
+
+    </LinearLayout>
+</ScrollView>

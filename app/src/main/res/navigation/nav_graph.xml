@@ -35,13 +35,24 @@
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.profile.ProfileFragment"
         android:label="Profile">
         <argument android:name="title" app:argType="string" android:defaultValue="Profile" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
     </fragment>
 
     <!-- Account (Riya) -->
+
+    <fragment
+        android:id="@+id/publicProfileFragment"
+        android:name="com.example.trojanrideshare.ui.profile.PublicProfileFragment"
+        android:label="Rider Profile">
+
+        <argument
+            android:name="riderUid"
+            app:argType="string" />
+
+    </fragment>
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.example.trojanrideshare.ui.auth.LoginFragment"

@@ -19,7 +19,8 @@ public class UserRepository {
         db = FirebaseFirestore.getInstance();
     }
 
-    // Save a student profile.
+    // Legacy helper. Use registerUser() for new accounts
+    // so USC ID uniqueness is enforced.
     public void saveUser(
             User user,
             OnSuccessListener<Void> onSuccess,
@@ -32,7 +33,7 @@ public class UserRepository {
                 .addOnFailureListener(onFailure);
     }
 
-    // Retrieve a student profile by Firebase UID.
+    // Retrieve a private student profile.
     public void getUser(
             String uid,
             OnSuccessListener<DocumentSnapshot> onSuccess,
@@ -45,22 +46,71 @@ public class UserRepository {
                 .addOnFailureListener(onFailure);
     }
 
-    // Update the student's nickname.
+    // Update the nickname in both private and public profiles.
     public void updateNickname(
             String uid,
             String nickname,
             OnSuccessListener<Void> onSuccess,
             OnFailureListener onFailure) {
 
-        db.collection("users")
-                .document(uid)
-                .update("nickname", nickname)
-                .addOnSuccessListener(onSuccess)
-                .addOnFailureListener(onFailure);
+        if (nickname == null || nickname.trim().isEmpty()) {
+            onFailure.onFailure(
+                    new IllegalArgumentException(
+                            "Nickname cannot be empty."
+                    )
+            );
+            return;
+        }
+
+        String cleanNickname = nickname.trim();
+
+        DocumentReference userRef =
+                db.collection("users").document(uid);
+
+        DocumentReference publicRef =
+                db.collection("publicProfiles").document(uid);
+
+        db.runTransaction(transaction -> {
+
+            DocumentSnapshot privateProfile =
+                    transaction.get(userRef);
+
+            DocumentSnapshot publicProfile =
+                    transaction.get(publicRef);
+
+            if (!privateProfile.exists()) {
+                throw new IllegalStateException(
+                        "Private profile not found."
+                );
+            }
+
+            if (!publicProfile.exists()) {
+                throw new IllegalStateException(
+                        "Public profile not found."
+                );
+            }
+
+            transaction.update(
+                    userRef,
+                    "nickname",
+                    cleanNickname
+            );
+
+            transaction.update(
+                    publicRef,
+                    "displayName",
+                    cleanNickname
+            );
+
+            return null;
+
+        }).addOnSuccessListener(result ->
+                onSuccess.onSuccess(null)
+        ).addOnFailureListener(onFailure);
     }
 
-    // Register a student profile and reserve their USC ID.
-    // Both Firestore writes happen in one transaction.
+    // Register a student and create all three Firestore records
+    // in a single transaction.
     public void registerUser(
             User user,
             OnSuccessListener<Void> onSuccess,
@@ -74,15 +124,21 @@ public class UserRepository {
                 db.collection("uscIdReservations")
                         .document(user.getUscId());
 
+        DocumentReference publicRef =
+                db.collection("publicProfiles")
+                        .document(user.getUid());
+
         db.runTransaction(transaction -> {
 
-            // Check whether the USC ID is already registered.
+            // All transaction reads happen before writes.
             DocumentSnapshot existingId =
                     transaction.get(idRef);
 
-            // Check whether the user profile already exists.
             DocumentSnapshot existingUser =
                     transaction.get(userRef);
+
+            DocumentSnapshot existingPublicProfile =
+                    transaction.get(publicRef);
 
             if (existingId.exists()) {
                 throw new IllegalStateException(
@@ -96,20 +152,41 @@ public class UserRepository {
                 );
             }
 
-            // Reserve the USC ID for this Firebase user.
+            if (existingPublicProfile.exists()) {
+                throw new IllegalStateException(
+                        "A public profile already exists for this account."
+                );
+            }
+
+            // Reserve the USC ID.
             Map<String, Object> reservation =
                     new HashMap<>();
 
             reservation.put("uid", user.getUid());
 
-            // Save both records atomically.
+            // Store only approved public information.
+            Map<String, Object> publicProfile =
+                    new HashMap<>();
+
+            publicProfile.put(
+                    "displayName",
+                    user.getNickname()
+            );
+
+            publicProfile.put(
+                    "fullName",
+                    user.getFullName()
+            );
+
+            // All three writes succeed or fail together.
             transaction.set(idRef, reservation);
             transaction.set(userRef, user);
+            transaction.set(publicRef, publicProfile);
 
             return null;
 
-        }).addOnSuccessListener(result -> {
-            onSuccess.onSuccess(null);
-        }).addOnFailureListener(onFailure);
+        }).addOnSuccessListener(result ->
+                onSuccess.onSuccess(null)
+        ).addOnFailureListener(onFailure);
     }
 }
