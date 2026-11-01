@@ -1,10 +1,9 @@
-
 package com.example.trojanrideshare.ui.ride;
 
 import android.os.Bundle;
 import android.text.Editable;
-import android.text.TextWatcher;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -31,6 +30,7 @@ public class CompleteRideFragment extends Fragment {
     private LinearLayout sharesContainer;
     private TextView errorText;
     private RadioGroup splitGroup;
+    private TextView customHint;
 
     private final List<String> riderIds = new ArrayList<>();
     private final Map<String, EditText> customInputs =
@@ -50,11 +50,10 @@ public class CompleteRideFragment extends Fragment {
         errorText = view.findViewById(R.id.textSplitError);
         splitGroup = view.findViewById(R.id.groupSplitMethod);
 
-        // Firebase completion will be connected later.
-        view.findViewById(R.id.buttonCompleteRide)
-                .setEnabled(false);
+        // Enable completion only after secure Firebase integration.
+        view.findViewById(R.id.buttonCompleteRide).setEnabled(false);
 
-        // Participants must come from the selected ride.
+        // Read participants supplied by the selected ride.
         riderIds.clear();
         Bundle args = getArguments();
         if (args != null) {
@@ -72,7 +71,7 @@ public class CompleteRideFragment extends Fragment {
         updatePreview();
     }
 
-    // Listen for changes to the entered ride cost.
+    // Update when a user edits an amount.
     private TextWatcher watcher(Runnable action) {
         return new TextWatcher() {
             @Override
@@ -92,112 +91,130 @@ public class CompleteRideFragment extends Fragment {
         };
     }
 
-    // Convert dollars to exact integer cents.
+    // Convert dollars into exact cents without floating-point rounding.
     private long parseCents(String value) {
         return new BigDecimal(value.trim())
                 .movePointRight(2)
                 .longValueExact();
     }
 
-    // Refresh the participant cost preview.
+    private String dollars(long cents) {
+        return String.format(Locale.US, "$%d.%02d",
+                cents / 100, cents % 100);
+    }
+
+    // Refresh the preview while preserving custom input fields.
     private void updatePreview() {
-        sharesContainer.removeAllViews();
+        if (riderIds.isEmpty()) {
+            sharesContainer.removeAllViews();
+            customInputs.clear();
+            customHint = null;
+            showError("No participants available for this ride.");
+            return;
+        }
 
+        long total;
         try {
-            if (riderIds.isEmpty()) {
-                customInputs.clear();
-                showError("No participants available for this ride.");
-                return;
-            }
-
-            long total = parseCents(
-                    totalInput.getText().toString());
+            total = parseCents(totalInput.getText().toString());
 
             if (total <= 0) {
                 showError("Enter a positive ride cost.");
                 return;
             }
-
-            boolean custom =
-                    splitGroup.getCheckedRadioButtonId()
-                            == R.id.radioCustom;
-
-            if (custom) {
-                renderCustomInputs(total);
-            } else {
-                renderEqualShares(total);
-            }
-
         } catch (IllegalArgumentException | ArithmeticException e) {
             showError("Enter a valid amount (e.g. 60.50).");
+            return;
+        }
+
+        boolean custom = splitGroup.getCheckedRadioButtonId()
+                == R.id.radioCustom;
+
+        if (custom) {
+            if (customInputs.isEmpty()) {
+                renderCustomInputs();
+            }
+            customHint.setText("Total ride cost: " + dollars(total));
+            validateCustomPreview(total);
+        } else {
+            renderEqualShares(total);
         }
     }
 
-    // Display each participant's equal share.
+    // Display equal shares as readable participant rows.
     private void renderEqualShares(long total) {
+        sharesContainer.removeAllViews();
         customInputs.clear();
+        customHint = null;
 
-        Map<String, Long> shares =
-                CostCalculator.splitEqual(total, riderIds);
+        try {
+            Map<String, Long> shares =
+                    CostCalculator.splitEqual(total, riderIds);
 
-        for (Map.Entry<String, Long> entry : shares.entrySet()) {
-            TextView row = new TextView(requireContext());
+            for (Map.Entry<String, Long> entry : shares.entrySet()) {
+                TextView row = new TextView(requireContext());
+                row.setText(entry.getKey() + "  •  "
+                        + dollars(entry.getValue()));
+                row.setTextSize(16);
+                row.setTextColor(0xFF302347);
+                row.setPadding(16, 20, 16, 20);
+                sharesContainer.addView(row);
+            }
 
-            row.setText(String.format(
-                    Locale.US, "%s  •  $%.2f",
-                    entry.getKey(),
-                    entry.getValue() / 100.0));
-
-            row.setTextSize(16);
-            row.setTextColor(0xFF302347);
-            row.setPadding(16, 20, 16, 20);
-
-            sharesContainer.addView(row);
+            hideError();
+        } catch (IllegalArgumentException e) {
+            showError(e.getMessage());
         }
-
-        hideError();
     }
 
-    // Show editable amounts for custom splitting.
-    private void renderCustomInputs(long total) {
-        Map<String, String> previous = new LinkedHashMap<>();
-
-        for (Map.Entry<String, EditText> entry
-                : customInputs.entrySet()) {
-            previous.put(entry.getKey(),
-                    entry.getValue().getText().toString());
-        }
-
+    // Create custom inputs once, not on every keystroke.
+    private void renderCustomInputs() {
+        sharesContainer.removeAllViews();
         customInputs.clear();
 
         for (String id : riderIds) {
             EditText input = new EditText(requireContext());
-
             input.setHint(id + " ($)");
             input.setSingleLine(true);
             input.setInputType(
                     InputType.TYPE_CLASS_NUMBER
                             | InputType.TYPE_NUMBER_FLAG_DECIMAL);
 
-            String saved = previous.get(id);
-            if (saved != null) input.setText(saved);
+            input.addTextChangedListener(watcher(
+                    this::validateCurrentCustomInputs));
 
             sharesContainer.addView(input);
             customInputs.put(id, input);
         }
 
-        TextView hint = new TextView(requireContext());
-        hint.setText("Custom shares must total "
-                + String.format(Locale.US, "$%.2f",
-                total / 100.0));
-        hint.setTextColor(0xFF746985);
-        hint.setPadding(0, 16, 0, 0);
-
-        sharesContainer.addView(hint);
-        hideError();
+        customHint = new TextView(requireContext());
+        customHint.setTextColor(0xFF746985);
+        customHint.setPadding(0, 16, 0, 0);
+        sharesContainer.addView(customHint);
     }
 
-    // Check that custom shares add up to the ride total.
+    // Validate custom amounts immediately when edited.
+    private void validateCurrentCustomInputs() {
+        try {
+            long total = parseCents(
+                    totalInput.getText().toString());
+            validateCustomPreview(total);
+        } catch (IllegalArgumentException | ArithmeticException e) {
+            showError("Enter a valid total ride cost.");
+        }
+    }
+
+    private void validateCustomPreview(long total) {
+        try {
+            getValidatedCustomShares(total);
+            hideError();
+        } catch (IllegalArgumentException | ArithmeticException e) {
+            showError(e.getMessage() == null
+                    ? "Check your custom amounts."
+                    : e.getMessage());
+        }
+    }
+
+    // Every rider must have a share, and shares must match the total.
     private Map<String, Long> getValidatedCustomShares(
             long totalCents) {
 
@@ -226,13 +243,10 @@ public class CompleteRideFragment extends Fragment {
             }
         }
 
-        CostCalculator.validateCustom(
-                totalCents, riderIds, shares);
-
+        CostCalculator.validateCustom(totalCents, riderIds, shares);
         return shares;
     }
 
-    // Display or dismiss validation messages.
     private void showError(String message) {
         errorText.setText(message);
         errorText.setVisibility(View.VISIBLE);
@@ -245,6 +259,7 @@ public class CompleteRideFragment extends Fragment {
     @Override
     public void onDestroyView() {
         customInputs.clear();
+        customHint = null;
         super.onDestroyView();
     }
 }
