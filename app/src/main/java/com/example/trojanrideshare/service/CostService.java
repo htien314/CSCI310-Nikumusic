@@ -198,4 +198,67 @@ public final class CostService {
         }, callback);
     }
 
+
+    // A payment becomes overdue seven days after ride completion.
+    public boolean isPaymentOverdue(Ride ride, String riderId) {
+        if (clock == null || ride == null
+                || ride.getActivityStatus() != ActivityStatus.COMPLETED
+                || ride.getCompletedAt() == null
+                || ride.getCostShares() == null) {
+            return false;
+        }
+
+        CostShare share = ride.getCostShares().get(riderId);
+
+        if (share == null || share.isPaid()) {
+            return false;
+        }
+
+        long sevenDays = java.util.concurrent.TimeUnit.DAYS.toMillis(7);
+        long completedAt = ride.getCompletedAt().toDate().getTime();
+
+        return clock.nowMillis() >= completedAt + sevenDays;
+    }
+
+    // Update overdue flags using the latest ride data.
+    public void refreshOverdueFlags(
+            String rideId,
+            Callback<Ride> callback) {
+
+        if (repository == null || clock == null) {
+            callback.onError(new IllegalStateException(
+                    "Overdue tracking is not configured."));
+            return;
+        }
+
+        if (rideId == null || rideId.trim().isEmpty()) {
+            callback.onError(new IllegalArgumentException(
+                    "A ride ID is required."));
+            return;
+        }
+
+        repository.update(rideId, ride -> {
+            if (ride.getActivityStatus() != ActivityStatus.COMPLETED
+                    || ride.getCompletedAt() == null
+                    || ride.getCostShares() == null) {
+                throw new IllegalStateException(
+                        "This ride has no completed payment records.");
+            }
+
+            for (Map.Entry<String, CostShare> entry
+                    : ride.getCostShares().entrySet()) {
+
+                CostShare share = entry.getValue();
+
+                if (share == null) {
+                    throw new IllegalStateException(
+                            "A payment record is missing.");
+                }
+
+                share.setFlagged(
+                        isPaymentOverdue(ride, entry.getKey()));
+            }
+        }, callback);
+    }
+
 }
