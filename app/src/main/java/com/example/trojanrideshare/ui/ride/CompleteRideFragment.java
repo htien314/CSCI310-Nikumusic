@@ -5,17 +5,30 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.trojanrideshare.R;
+import com.example.trojanrideshare.data.FirestoreRideRepository;
+import com.example.trojanrideshare.data.RideRepository;
+import com.example.trojanrideshare.model.Participant;
+import com.example.trojanrideshare.model.Ride;
 import com.example.trojanrideshare.service.CostCalculator;
+import com.example.trojanrideshare.service.CostService;
+import com.example.trojanrideshare.service.RideService;
+import com.example.trojanrideshare.util.Callback;
+import com.example.trojanrideshare.util.Clock;
+import com.example.trojanrideshare.util.Constants;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -31,10 +44,17 @@ public class CompleteRideFragment extends Fragment {
     private TextView errorText;
     private RadioGroup splitGroup;
     private TextView customHint;
+    private Button completeButton;
 
     private final List<String> riderIds = new ArrayList<>();
     private final Map<String, EditText> customInputs =
             new LinkedHashMap<>();
+
+    private RideRepository repository;
+    private CostService costService;
+    private String rideId;
+    private boolean rideReady = false;
+    private boolean saving = false;
 
     public CompleteRideFragment() {
         super(R.layout.fragment_complete_ride);
@@ -49,18 +69,21 @@ public class CompleteRideFragment extends Fragment {
         sharesContainer = view.findViewById(R.id.containerShares);
         errorText = view.findViewById(R.id.textSplitError);
         splitGroup = view.findViewById(R.id.groupSplitMethod);
+        completeButton = view.findViewById(R.id.buttonCompleteRide);
 
-        // Enable completion only after secure Firebase integration.
-        view.findViewById(R.id.buttonCompleteRide).setEnabled(false);
+        completeButton.setEnabled(false);
 
-        // Read participants supplied by the selected ride.
-        riderIds.clear();
+        // Use the same repository and clock for ride rules.
+        Clock clock = System::currentTimeMillis;
+        repository = new FirestoreRideRepository(
+                FirebaseFirestore.getInstance());
+
+        RideService rideService = new RideService(repository, clock);
+        costService = new CostService(repository, rideService, clock);
+
         Bundle args = getArguments();
-        if (args != null) {
-            ArrayList<String> ids =
-                    args.getStringArrayList("riderIds");
-            if (ids != null) riderIds.addAll(ids);
-        }
+        rideId = args == null
+                ? null : args.getString(Constants.ARG_RIDE_ID);
 
         splitGroup.setOnCheckedChangeListener(
                 (group, checkedId) -> updatePreview());
@@ -68,7 +91,136 @@ public class CompleteRideFragment extends Fragment {
         totalInput.addTextChangedListener(
                 watcher(this::updatePreview));
 
-        updatePreview();
+        completeButton.setOnClickListener(v -> submitCompletion());
+
+        if (rideId == null || rideId.trim().isEmpty()) {
+            showError("No ride was selected.");
+            return;
+        }
+
+        showError("Loading ride participants...");
+        loadRide(view);
+    }
+
+    // Load the current participants from Firebase.
+    private void loadRide(View view) {
+        rideReady = false;
+        updateButton();
+
+        repository.getById(rideId, new Callback<Ride>() {
+            @Override
+            public void onSuccess(Ride ride) {
+                if (getView() != view) return;
+
+                if (ride == null
+                        || !ride.isOrganizer(CurrentUser.id())
+                        || ride.isFinished()
+                        || ride.getCurrentDepartureTime() == null
+                        || ride.getCurrentDepartureTime().toDate()
+                        .getTime() > System.currentTimeMillis()) {
+                    showError("This ride cannot be completed.");
+                    return;
+                }
+
+                if (ride.getParticipants() == null
+                        || ride.getParticipants().isEmpty()) {
+                    showError("No participants available for this ride.");
+                    return;
+                }
+
+                riderIds.clear();
+
+                for (Participant participant : ride.getParticipants()) {
+                    if (participant == null
+                            || participant.getUserId() == null
+                            || participant.getUserId().trim().isEmpty()
+                            || riderIds.contains(participant.getUserId())) {
+                        showError("This ride has invalid participants.");
+                        return;
+                    }
+
+                    riderIds.add(participant.getUserId());
+                }
+
+                rideReady = true;
+                updatePreview();
+            }
+
+            @Override
+            public void onError(Exception error) {
+                if (getView() != view) return;
+                showError("Could not load ride: " + error.getMessage());
+            }
+        });
+    }
+
+    // Save the final cost and shares in Firebase.
+    private void submitCompletion() {
+        if (!rideReady || saving) return;
+
+        long total;
+        Map<String, Long> customShares = null;
+
+        try {
+            total = parseCents(totalInput.getText().toString());
+
+            if (total <= 0) {
+                throw new IllegalArgumentException(
+                        "Enter a positive ride cost.");
+            }
+
+            if (splitGroup.getCheckedRadioButtonId()
+                    == R.id.radioCustom) {
+                customShares = getValidatedCustomShares(total);
+            } else {
+                CostCalculator.splitEqual(total, riderIds);
+            }
+        } catch (IllegalArgumentException | ArithmeticException e) {
+            showError(e.getMessage() == null
+                    ? "Please check the amounts."
+                    : e.getMessage());
+            return;
+        }
+
+        saving = true;
+        updateButton();
+
+        View currentView = getView();
+
+        costService.completeRide(
+                rideId,
+                CurrentUser.id(),
+                total,
+                customShares,
+                new Callback<Ride>() {
+                    @Override
+                    public void onSuccess(Ride ride) {
+                        if (getView() != currentView) return;
+
+                        saving = false;
+                        rideReady = false;
+                        updateButton();
+
+                        Toast.makeText(
+                                requireContext(),
+                                "Ride completed successfully!",
+                                Toast.LENGTH_LONG
+                        ).show();
+
+                        NavHostFragment.findNavController(
+                                CompleteRideFragment.this
+                        ).popBackStack();
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        if (getView() != currentView) return;
+
+                        saving = false;
+                        showError("Could not complete ride: "
+                                + error.getMessage());
+                    }
+                });
     }
 
     // Update when a user edits an amount.
@@ -250,16 +402,31 @@ public class CompleteRideFragment extends Fragment {
     private void showError(String message) {
         errorText.setText(message);
         errorText.setVisibility(View.VISIBLE);
+        updateButton();
     }
 
     private void hideError() {
         errorText.setVisibility(View.GONE);
+        updateButton();
+    }
+
+    // Prevent invalid or duplicate submissions.
+    private void updateButton() {
+        if (completeButton != null) {
+            completeButton.setEnabled(
+                    rideReady && !saving
+                            && errorText.getVisibility() != View.VISIBLE);
+        }
     }
 
     @Override
     public void onDestroyView() {
         customInputs.clear();
+        riderIds.clear();
         customHint = null;
+        rideReady = false;
+        saving = false;
+        completeButton = null;
         super.onDestroyView();
     }
 }
