@@ -38,3 +38,10 @@ Android app (Java, XML layouts, Jetpack Navigation, Firebase Auth + Cloud Firest
 | Ride search + locations | Nikhil |
 | Join requests + membership | Hailey |
 | Cost split, payments, monthly summary | Estelle |
+
+## Membership (Hailey)
+
+My Rides & Requests and the Join Requests destination now support request submission,
+organizer approval/rejection, participants, leaving, and ownership transfer. See
+[the membership handoff](docs/hailey-membership.md) for data contracts, tests,
+Firebase deployment prerequisites, and integration with the other feature branches.

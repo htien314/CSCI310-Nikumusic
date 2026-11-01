@@ -25,7 +25,7 @@
 
     <fragment
         android:id="@+id/myRidesFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.membership.MembershipFragment"
         android:label="My Rides &amp; Requests">
         <argument android:name="title" app:argType="string" android:defaultValue="My Rides &amp; Requests" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Hailey" />
@@ -75,7 +75,7 @@
     <!-- Membership (Hailey) -->
     <fragment
         android:id="@+id/requestsInboxFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.membership.MembershipFragment"
         android:label="Join Requests">
         <argument android:name="title" app:argType="string" android:defaultValue="Join Requests" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Hailey" />
