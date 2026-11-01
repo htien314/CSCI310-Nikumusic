@@ -74,6 +74,15 @@
                     android:layout_height="wrap_content"
                     android:text="@string/ride_details_cancel"
                     android:textColor="?attr/colorError" />
+
+                <!-- Organizer can complete the ride after departure. -->
+                <Button
+                    android:id="@+id/complete_ride_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Complete Ride"
+                    android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
