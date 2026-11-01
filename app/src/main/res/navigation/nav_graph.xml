@@ -85,7 +85,7 @@
     <!-- Cost (Estelle) -->
     <fragment
         android:id="@+id/completeRideFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.ride.CompleteRideFragment"
         android:label="Complete Ride">
         <argument android:name="title" app:argType="string" android:defaultValue="Complete Ride" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Estelle" />
