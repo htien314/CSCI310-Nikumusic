@@ -103,7 +103,7 @@
 
     <fragment
         android:id="@+id/monthlySummaryFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.ride.MonthlySummaryFragment"
         android:label="Monthly Summary">
         <argument android:name="title" app:argType="string" android:defaultValue="Monthly Summary" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Estelle" />
