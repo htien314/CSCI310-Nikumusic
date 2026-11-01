@@ -49,6 +49,31 @@ public class RideDetailsFragment extends Fragment {
     private Button cancelButton;
     private Button completeRideButton; // Added for ride completion
 
+    // Refresh completion availability when the departure time passes.
+    private final android.os.Handler completionHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+
+    private final Runnable refreshCompletionButton = new Runnable() {
+        @Override
+        public void run() {
+            if (viewModel != null && viewModel.getRide().getValue() != null
+                    && completeRideButton != null) {
+                Ride ride = viewModel.getRide().getValue();
+
+                boolean canComplete = ride.isOrganizer(CurrentUser.id())
+                        && !ride.isFinished()
+                        && ride.getCurrentDepartureTime() != null
+                        && ride.getCurrentDepartureTime().toDate().getTime()
+                        <= System.currentTimeMillis();
+
+                completeRideButton.setVisibility(
+                        canComplete ? View.VISIBLE : View.GONE);
+            }
+
+            completionHandler.postDelayed(this, 1000);
+        }
+    };
+
     public RideDetailsFragment() {
         super(R.layout.fragment_ride_details);
     }
@@ -136,6 +161,7 @@ public class RideDetailsFragment extends Fragment {
         boolean departed = ride.getCurrentDepartureTime() != null
                 && ride.getCurrentDepartureTime().toDate().getTime()
                 <= System.currentTimeMillis();
+
         completeRideButton.setVisibility(
                 canManage && departed ? View.VISIBLE : View.GONE);
 
@@ -227,5 +253,25 @@ public class RideDetailsFragment extends Fragment {
                         (dialog, which) -> viewModel.cancelRide(CurrentUser.id()))
                 .setNegativeButton(R.string.ride_details_cancel_keep, null)
                 .show();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        completionHandler.removeCallbacks(refreshCompletionButton);
+        completionHandler.post(refreshCompletionButton);
+    }
+
+    @Override
+    public void onStop() {
+        completionHandler.removeCallbacks(refreshCompletionButton);
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroyView() {
+        completionHandler.removeCallbacks(refreshCompletionButton);
+        completeRideButton = null;
+        super.onDestroyView();
     }
 }
