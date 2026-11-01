@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#FBF7FF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ride payments 💜"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#35244F" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Keep track of everyone's share!"
+            android:textSize="15sp"
+            android:textColor="#746985" />
+
+        <TextView
+            android:id="@+id/textPaymentSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="Loading payment details..."
+            android:textColor="#35244F"
+            android:textSize="17sp" />
+
+        <LinearLayout
+            android:id="@+id/containerPayments"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="vertical" />
+
+        <TextView
+            android:id="@+id/textPaymentError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="#B3261E"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</ScrollView>
