@@ -9,6 +9,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.trojanrideshare.R;
 import com.example.trojanrideshare.data.FirestoreRideRepository;
@@ -51,6 +52,14 @@ public class PaymentTrackingFragment extends Fragment {
         summaryText = view.findViewById(R.id.textPaymentSummary);
         errorText = view.findViewById(R.id.textPaymentError);
         paymentsContainer = view.findViewById(R.id.containerPayments);
+
+        // Open the Monthly Summary screen.
+        Button monthlySummaryButton =
+                view.findViewById(R.id.buttonMonthlySummary);
+
+        monthlySummaryButton.setOnClickListener(v ->
+                NavHostFragment.findNavController(this)
+                        .navigate(R.id.action_global_monthlySummary));
 
         Clock clock = System::currentTimeMillis;
 

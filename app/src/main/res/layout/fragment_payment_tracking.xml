@@ -27,6 +27,14 @@
             android:textSize="15sp"
             android:textColor="#746985" />
 
+        <Button
+            android:id="@+id/buttonMonthlySummary"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="View Monthly Summary" />
+
         <TextView
             android:id="@+id/textPaymentSummary"
             android:layout_width="match_parent"
