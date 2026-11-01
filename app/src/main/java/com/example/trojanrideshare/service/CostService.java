@@ -141,4 +141,61 @@ public final class CostService {
 
         }, callback);
     }
+
+    // Record an individual rider's payment after ride completion.
+    public void markRiderPaid(
+            String rideId,
+            String organizerId,
+            String riderId,
+            Callback<Ride> callback) {
+
+        if (repository == null) {
+            callback.onError(new IllegalStateException(
+                    "Payment tracking is not configured."));
+            return;
+        }
+
+        if (rideId == null || rideId.trim().isEmpty()
+                || organizerId == null || organizerId.trim().isEmpty()
+                || riderId == null || riderId.trim().isEmpty()) {
+            callback.onError(new IllegalArgumentException(
+                    "Ride, organizer, and rider IDs are required."));
+            return;
+        }
+
+        repository.update(rideId, ride -> {
+
+            if (!ride.isOrganizer(organizerId)) {
+                throw new IllegalStateException(
+                        "Only the organizer can record payments.");
+            }
+
+            if (ride.getActivityStatus() != ActivityStatus.COMPLETED) {
+                throw new IllegalStateException(
+                        "The ride must be completed first.");
+            }
+
+            Map<String, CostShare> shares = ride.getCostShares();
+
+            if (shares == null || !shares.containsKey(riderId)) {
+                throw new IllegalArgumentException(
+                        "This rider has no cost share.");
+            }
+
+            CostShare share = shares.get(riderId);
+
+            if (share == null) {
+                throw new IllegalArgumentException(
+                        "This rider has no valid cost share.");
+            }
+
+            if (share.isPaid()) {
+                throw new IllegalStateException(
+                        "This rider has already paid.");
+            }
+
+            share.markPaid();
+        }, callback);
+    }
+
 }
