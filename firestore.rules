@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    match /rides/{rideId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.organizerId == request.auth.uid
+        && request.resource.data.participants.size() == 1
+        && request.resource.data.participants[0].userId == request.auth.uid
+        && request.resource.data.maxRiders is int
+        && request.resource.data.maxRiders >= 2 && request.resource.data.maxRiders <= 6
+        && request.resource.data.activityStatus == 'ON_TIME'
+        && request.resource.data.capacityStatus == 'OPEN';
+      // Membership mutations require the authenticated callable (Admin SDK).
+      // This permits Ada's existing status-only transaction without membership writes.
+      allow update: if signedIn() && resource.data.organizerId == request.auth.uid
+        && !(resource.data.activityStatus in ['CANCELLED', 'COMPLETED'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['activityStatus', 'delayedDepartureTime', 'capacityStatus'])
+        && ((request.resource.data.activityStatus == 'CANCELLED'
+            && resource.data.departureTime >= request.time + duration.value(3, 'h')
+            && request.resource.data.capacityStatus == 'NOT_APPLICABLE')
+          || (request.resource.data.activityStatus in ['ON_TIME', 'DELAYED']
+            && request.resource.data.capacityStatus == resource.data.capacityStatus));
+    }
+    match /joinRequests/{requestId} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid
+        || get(/databases/$(database)/documents/rides/$(resource.data.rideId)).data.organizerId == request.auth.uid);
+      allow write: if false;
+    }
+    // Baseline privacy. Reconcile Riya's public-profile contract and Estelle's cost
+    // rules before team deployment; unmatched collections remain denied.
+    match /users/{uid} {
+      allow read, create, update: if signedIn() && request.auth.uid == uid;
+    }
+  }
+}

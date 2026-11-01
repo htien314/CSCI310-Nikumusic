@@ -1,0 +1,6 @@
+<resources>
+    <string name="membership_title">My Rides &amp; Requests</string>
+    <string name="membership_refresh">Refresh</string>
+    <string name="membership_details_title">Ride Membership</string>
+    <string name="membership_message_hint">Optional message (up to 1,000 characters)</string>
+</resources>
