@@ -207,9 +207,13 @@ public class CompleteRideFragment extends Fragment {
                                 Toast.LENGTH_LONG
                         ).show();
 
+                        Bundle args = new Bundle();
+                        args.putString(Constants.ARG_RIDE_ID, rideId);
+
                         NavHostFragment.findNavController(
                                 CompleteRideFragment.this
-                        ).popBackStack();
+                        ).navigate(R.id.action_global_paymentTracking, args);
+
                     }
 
                     @Override
