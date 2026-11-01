@@ -1,13 +1,43 @@
 package com.example.trojanrideshare.service;
 
+import com.example.trojanrideshare.data.RideRepository;
+import com.example.trojanrideshare.model.ActivityStatus;
 import com.example.trojanrideshare.model.CostShare;
+import com.example.trojanrideshare.model.Participant;
+import com.example.trojanrideshare.model.Ride;
+import com.example.trojanrideshare.util.Callback;
+import com.example.trojanrideshare.util.Clock;
+import com.google.firebase.Timestamp;
+
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class CostService {
 
-    // Prepare shares for a valid organizer-led completion.
+    private final RideRepository repository;
+    private final RideService rideService;
+    private final Clock clock;
+
+    // Keep the original constructor for existing tests.
+    public CostService() {
+        repository = null;
+        rideService = null;
+        clock = null;
+    }
+
+    // Use this constructor for real ride completion.
+    public CostService(RideRepository repository,
+                       RideService rideService,
+                       Clock clock) {
+        this.repository = repository;
+        this.rideService = rideService;
+        this.clock = clock;
+    }
+
+    // Calculate shares before saving a completed ride.
     public Map<String, CostShare> prepareCompletion(
             String organizerId,
             String currentUserId,
@@ -39,11 +69,76 @@ public final class CostService {
         }
 
         Map<String, CostShare> result = new LinkedHashMap<>();
+
         for (Map.Entry<String, Long> entry : amounts.entrySet()) {
             result.put(entry.getKey(), new CostShare(
                     entry.getKey(), entry.getValue()));
         }
 
         return result;
+    }
+
+    // Complete a ride using one atomic Firestore transaction.
+    public void completeRide(
+            String rideId,
+            String currentUserId,
+            long totalCents,
+            Map<String, Long> customShares,
+            Callback<Ride> callback) {
+
+        if (repository == null || rideService == null || clock == null) {
+            callback.onError(new IllegalStateException(
+                    "Ride completion is not configured."));
+            return;
+        }
+
+        if (rideId == null || rideId.trim().isEmpty()
+                || currentUserId == null || currentUserId.trim().isEmpty()) {
+            callback.onError(new IllegalArgumentException(
+                    "A ride and signed-in user are required."));
+            return;
+        }
+
+        // Capture defensive input copies before the transaction.
+        Map<String, Long> requestedShares = customShares == null
+                ? null : new LinkedHashMap<>(customShares);
+
+        repository.update(rideId, ride -> {
+
+            // Check the latest ride state inside the transaction.
+            rideService.checkCanComplete(ride, currentUserId);
+
+            List<String> participantIds = new ArrayList<>();
+            if (ride.getParticipants() == null) {
+                throw new IllegalArgumentException(
+                        "Ride participants are missing.");
+            }
+
+            for (Participant participant : ride.getParticipants()) {
+                if (participant == null
+                        || participant.getUserId() == null
+                        || participant.getUserId().trim().isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "A ride participant has an invalid ID.");
+                }
+                participantIds.add(participant.getUserId());
+            }
+
+            Map<String, CostShare> shares = prepareCompletion(
+                    ride.getOrganizerId(),
+                    currentUserId,
+                    ride.isFinished(),
+                    totalCents,
+                    participantIds,
+                    requestedShares);
+
+            ride.setActualCostCents(totalCents);
+            ride.setCostShares(shares);
+            ride.setCompletedAt(
+                    new Timestamp(new Date(clock.nowMillis())));
+            ride.setActivityStatus(ActivityStatus.COMPLETED);
+            ride.syncCapacityStatus();
+
+        }, callback);
     }
 }
