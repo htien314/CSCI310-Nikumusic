@@ -48,6 +48,7 @@ public class RideDetailsFragment extends Fragment {
     private Button onTimeButton;
     private Button cancelButton;
     private Button completeRideButton; // Added for ride completion
+    private Button viewPaymentsButton; // Added for payment tracking
 
     // Refresh completion availability when the departure time passes.
     private final android.os.Handler completionHandler =
@@ -92,6 +93,25 @@ public class RideDetailsFragment extends Fragment {
 
         // Added for ride completion
         completeRideButton = view.findViewById(R.id.complete_ride_button);
+
+        // Added for payment tracking
+        viewPaymentsButton = view.findViewById(R.id.view_payments_button);
+
+        viewPaymentsButton.setOnClickListener(v -> {
+            Ride ride = viewModel.getRide().getValue();
+
+            if (ride == null
+                    || ride.getActivityStatus() != ActivityStatus.COMPLETED) {
+                return;
+            }
+
+            Bundle args = new Bundle();
+            args.putString(Constants.ARG_RIDE_ID, ride.getId());
+
+            NavHostFragment.findNavController(this)
+                    .navigate(R.id.action_global_paymentTracking, args);
+        });
+
         completeRideButton.setOnClickListener(v -> {
             Ride ride = viewModel.getRide().getValue();
             if (ride == null || !ride.isOrganizer(CurrentUser.id())
@@ -156,6 +176,11 @@ public class RideDetailsFragment extends Fragment {
         boolean canManage = ride.isOrganizer(CurrentUser.id()) && !ride.isFinished();
         boolean delayed = ride.getActivityStatus() == ActivityStatus.DELAYED;
         organizerControls.setVisibility(canManage ? View.VISIBLE : View.GONE);
+
+        // Show payment records after the ride is completed.
+        viewPaymentsButton.setVisibility(
+                ride.getActivityStatus() == ActivityStatus.COMPLETED
+                        ? View.VISIBLE : View.GONE);
 
         // Added for ride completion
         boolean departed = ride.getCurrentDepartureTime() != null
@@ -272,6 +297,7 @@ public class RideDetailsFragment extends Fragment {
     public void onDestroyView() {
         completionHandler.removeCallbacks(refreshCompletionButton);
         completeRideButton = null;
+        viewPaymentsButton = null;
         super.onDestroyView();
     }
 }
