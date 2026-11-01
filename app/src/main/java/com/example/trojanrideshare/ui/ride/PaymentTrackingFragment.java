@@ -269,7 +269,12 @@ public class PaymentTrackingFragment extends Fragment {
                 if (ride != null
                         && ride.getActivityStatus() == ActivityStatus.COMPLETED
                         && ride.getCostShares() != null) {
+
+                    String previousError = errorText.getText().toString();
+
                     renderPayments(ride);
+
+                    showError(previousError);
                 }
             }
 
