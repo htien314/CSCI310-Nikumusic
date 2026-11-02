@@ -8,7 +8,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="20dp">
 
         <TextView
             android:layout_width="match_parent"
@@ -18,7 +18,111 @@
             android:textSize="26sp"
             android:textStyle="bold" />
 
-        <!-- Visible when signed out -->
+        <TextView
+            android:id="@+id/profileMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
+
+        <!-- Signed-in profile -->
+        <LinearLayout
+            android:id="@+id/profileSignedIn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Full Name"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/profileFullName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="16dp"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/profileEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/profileUscId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/profileGraduationYear"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Nickname editing -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nickname"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/profileNickname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="Enter your nickname"
+                android:inputType="textPersonName"
+                android:maxLines="1" />
+
+            <Button
+                android:id="@+id/profileSaveNicknameButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Save Nickname" />
+
+            <!-- Upcoming rides -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="Upcoming Rides"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/profileUpcomingRides"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Loading upcoming rides..."
+                android:textSize="15sp" />
+
+            <!-- Navigate to completed/cancelled history -->
+            <Button
+                android:id="@+id/profileViewHistoryButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="View Ride History" />
+
+            <Button
+                android:id="@+id/profileLogoutButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Log Out" />
+
+        </LinearLayout>
+
+        <!-- Signed-out profile -->
         <LinearLayout
             android:id="@+id/profileSignedOut"
             android:layout_width="match_parent"
@@ -29,8 +133,9 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Log in to view your profile."
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="16dp"
+                android:text="Please log in or register to view your profile."
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/profileLoginButton"
@@ -42,70 +147,10 @@
                 android:id="@+id/profileRegisterButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Create Account" />
+                android:layout_marginTop="8dp"
+                android:text="Register" />
+
         </LinearLayout>
-
-        <!-- Visible when signed in -->
-        <LinearLayout
-            android:id="@+id/profileSignedIn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/profileFullName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/profileEmail"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp" />
-
-            <TextView
-                android:id="@+id/profileUscId"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp" />
-
-            <TextView
-                android:id="@+id/profileGraduationYear"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp" />
-
-            <EditText
-                android:id="@+id/profileNickname"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="16dp"
-                android:hint="Nickname"
-                android:inputType="textPersonName" />
-
-            <Button
-                android:id="@+id/profileSaveNicknameButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Save Nickname" />
-
-            <Button
-                android:id="@+id/profileLogoutButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Log Out" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/profileMessage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:accessibilityLiveRegion="polite" />
 
     </LinearLayout>
 </ScrollView>

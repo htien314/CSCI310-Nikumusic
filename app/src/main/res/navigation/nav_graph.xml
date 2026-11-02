@@ -18,6 +18,17 @@
     </fragment>
 
     <fragment
+        android:id="@+id/rideParticipantsFragment"
+        android:name="com.example.trojanrideshare.ui.profile.RideParticipantsFragment"
+        android:label="Ride Participants">
+
+        <argument
+            android:name="rideId"
+            app:argType="string" />
+
+    </fragment>
+
+    <fragment
         android:id="@+id/createRideFragment"
         android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
         android:label="Create Ride">
