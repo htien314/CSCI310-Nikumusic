@@ -1,0 +1,181 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function publicPath(uid) {
+      return /databases/$(database)/documents/publicProfiles/$(uid);
+    }
+
+    function reservationPath(uscId) {
+      return /databases/$(database)/documents/uscIdReservations/$(uscId);
+    }
+
+    // ---------------------------------------
+    // Ride rules - preserved from Hailey
+    // ---------------------------------------
+
+    match /rides/{rideId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.organizerId == request.auth.uid
+        && request.resource.data.participants.size() == 1
+        && request.resource.data.participants[0].userId == request.auth.uid
+        && request.resource.data.maxRiders is int
+        && request.resource.data.maxRiders >= 2
+        && request.resource.data.maxRiders <= 6
+        && request.resource.data.activityStatus == 'ON_TIME'
+        && request.resource.data.capacityStatus == 'OPEN';
+
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && !(resource.data.activityStatus in ['CANCELLED', 'COMPLETED'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'activityStatus',
+              'delayedDepartureTime',
+              'capacityStatus'
+            ])
+        && (
+          (
+            request.resource.data.activityStatus == 'CANCELLED'
+            && resource.data.departureTime >=
+                request.time + duration.value(3, 'h')
+            && request.resource.data.capacityStatus == 'NOT_APPLICABLE'
+          )
+          ||
+          (
+            request.resource.data.activityStatus in ['ON_TIME', 'DELAYED']
+            && request.resource.data.capacityStatus ==
+                resource.data.capacityStatus
+          )
+        );
+    }
+
+    // ---------------------------------------
+    // Join requests - preserved from Hailey
+    // ---------------------------------------
+
+    match /joinRequests/{requestId} {
+      allow read: if signedIn()
+        && (
+          resource.data.userId == request.auth.uid
+          ||
+          get(
+            /databases/$(database)/documents/rides/$(resource.data.rideId)
+          ).data.organizerId == request.auth.uid
+        );
+
+      // Membership writes use the authenticated backend.
+      allow write: if false;
+    }
+
+    // ---------------------------------------
+    // Private student profiles - Riya
+    // ---------------------------------------
+
+    match /users/{uid} {
+
+      allow get: if isOwner(uid);
+      allow list: if false;
+
+      // Registration must create a matching USC ID
+      // reservation and public profile in the same batch.
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.uscId is string
+        && request.resource.data.uscId.matches('^[0-9]{10}$')
+        && request.resource.data.fullName is string
+        && request.resource.data.nickname is string
+        && request.resource.data.uscEmail is string
+        && getAfter(
+            reservationPath(request.resource.data.uscId)
+          ).data.uid == uid
+        && getAfter(publicPath(uid)).data.fullName ==
+            request.resource.data.fullName
+        && getAfter(publicPath(uid)).data.displayName ==
+            request.resource.data.nickname;
+
+      // Students may change only their nickname.
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['nickname'])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() > 0
+        && request.resource.data.nickname.size() <= 100
+        && getAfter(publicPath(uid)).data.displayName ==
+            request.resource.data.nickname;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------
+    // Public rider profiles - Riya
+    // ---------------------------------------
+
+    match /publicProfiles/{uid} {
+
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Public profiles must match the private profile.
+      allow create: if isOwner(uid)
+        && request.resource.data.keys()
+            .hasOnly(['displayName', 'fullName'])
+        && request.resource.data.keys()
+            .hasAll(['displayName', 'fullName'])
+        && request.resource.data.displayName is string
+        && request.resource.data.fullName is string
+        && getAfter(userPath(uid)).data.nickname ==
+            request.resource.data.displayName
+        && getAfter(userPath(uid)).data.fullName ==
+            request.resource.data.fullName;
+
+      // Only the display name may change.
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['displayName'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 100
+        && getAfter(userPath(uid)).data.nickname ==
+            request.resource.data.displayName;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------
+    // USC ID reservations - Riya
+    // ---------------------------------------
+
+    match /uscIdReservations/{uscId} {
+
+      // Don't expose student ID reservations.
+      allow read: if false;
+
+      // Create-only: an existing USC ID reservation
+      // cannot be overwritten.
+      allow create: if signedIn()
+        && uscId.matches('^[0-9]{10}$')
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.keys().hasAll(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(userPath(request.auth.uid)).data.uscId == uscId;
+
+      allow update, delete: if false;
+    }
+  }
+}

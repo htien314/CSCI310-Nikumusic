@@ -2,11 +2,14 @@
 package com.example.trojanrideshare.data;
 
 import com.example.trojanrideshare.model.User;
+
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,8 +22,8 @@ public class UserRepository {
         db = FirebaseFirestore.getInstance();
     }
 
-    // Legacy helper. Use registerUser() for new accounts
-    // so USC ID uniqueness is enforced.
+    // Legacy helper for saving a private user profile.
+    // Use registerUser() for new student registrations.
     public void saveUser(
             User user,
             OnSuccessListener<Void> onSuccess,
@@ -33,7 +36,7 @@ public class UserRepository {
                 .addOnFailureListener(onFailure);
     }
 
-    // Retrieve a private student profile.
+    // Retrieve a student's private profile.
     public void getUser(
             String uid,
             OnSuccessListener<DocumentSnapshot> onSuccess,
@@ -65,13 +68,16 @@ public class UserRepository {
         String cleanNickname = nickname.trim();
 
         DocumentReference userRef =
-                db.collection("users").document(uid);
+                db.collection("users")
+                        .document(uid);
 
         DocumentReference publicRef =
-                db.collection("publicProfiles").document(uid);
+                db.collection("publicProfiles")
+                        .document(uid);
 
         db.runTransaction(transaction -> {
 
+            // Read both profiles before performing updates.
             DocumentSnapshot privateProfile =
                     transaction.get(userRef);
 
@@ -90,12 +96,14 @@ public class UserRepository {
                 );
             }
 
+            // Update private nickname.
             transaction.update(
                     userRef,
                     "nickname",
                     cleanNickname
             );
 
+            // Update public display name.
             transaction.update(
                     publicRef,
                     "displayName",
@@ -109,12 +117,27 @@ public class UserRepository {
         ).addOnFailureListener(onFailure);
     }
 
-    // Register a student and create all three Firestore records
-    // in a single transaction.
+    // Register a new student by atomically writing three documents.
+    // Security rules must prevent existing ID reservations from
+    // being overwritten and validate the linked records.
     public void registerUser(
             User user,
             OnSuccessListener<Void> onSuccess,
             OnFailureListener onFailure) {
+
+        if (user == null
+                || user.getUid() == null
+                || user.getUid().trim().isEmpty()
+                || user.getUscId() == null
+                || user.getUscId().trim().isEmpty()) {
+
+            onFailure.onFailure(
+                    new IllegalArgumentException(
+                            "Invalid registration information."
+                    )
+            );
+            return;
+        }
 
         DocumentReference userRef =
                 db.collection("users")
@@ -128,65 +151,49 @@ public class UserRepository {
                 db.collection("publicProfiles")
                         .document(user.getUid());
 
-        db.runTransaction(transaction -> {
+        // Reserve the student's USC ID.
+        Map<String, Object> reservation =
+                new HashMap<>();
 
-            // All transaction reads happen before writes.
-            DocumentSnapshot existingId =
-                    transaction.get(idRef);
+        reservation.put(
+                "uid",
+                user.getUid()
+        );
 
-            DocumentSnapshot existingUser =
-                    transaction.get(userRef);
+        // Store approved public-facing information.
+        Map<String, Object> publicProfile =
+                new HashMap<>();
 
-            DocumentSnapshot existingPublicProfile =
-                    transaction.get(publicRef);
+        publicProfile.put(
+                "displayName",
+                user.getNickname()
+        );
 
-            if (existingId.exists()) {
-                throw new IllegalStateException(
-                        "This USC ID is already registered."
-                );
-            }
+        publicProfile.put(
+                "fullName",
+                user.getFullName()
+        );
 
-            if (existingUser.exists()) {
-                throw new IllegalStateException(
-                        "A profile already exists for this account."
-                );
-            }
+        // All three writes succeed or fail together.
+        WriteBatch batch = db.batch();
 
-            if (existingPublicProfile.exists()) {
-                throw new IllegalStateException(
-                        "A public profile already exists for this account."
-                );
-            }
+        batch.set(
+                idRef,
+                reservation
+        );
 
-            // Reserve the USC ID.
-            Map<String, Object> reservation =
-                    new HashMap<>();
+        batch.set(
+                userRef,
+                user
+        );
 
-            reservation.put("uid", user.getUid());
+        batch.set(
+                publicRef,
+                publicProfile
+        );
 
-            // Store only approved public information.
-            Map<String, Object> publicProfile =
-                    new HashMap<>();
-
-            publicProfile.put(
-                    "displayName",
-                    user.getNickname()
-            );
-
-            publicProfile.put(
-                    "fullName",
-                    user.getFullName()
-            );
-
-            // All three writes succeed or fail together.
-            transaction.set(idRef, reservation);
-            transaction.set(userRef, user);
-            transaction.set(publicRef, publicProfile);
-
-            return null;
-
-        }).addOnSuccessListener(result ->
-                onSuccess.onSuccess(null)
-        ).addOnFailureListener(onFailure);
+        batch.commit()
+                .addOnSuccessListener(onSuccess)
+                .addOnFailureListener(onFailure);
     }
 }
