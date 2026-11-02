@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ride search strings (owner: Nikhil). Kept apart from strings.xml to avoid merge conflicts. -->
+<resources>
+    <string name="search_heading">Find a ride</string>
+    <string name="search_pickup">Pickup location</string>
+    <string name="search_destination">Where you\'re going</string>
+    <string name="search_radius">Radius</string>
+    <string name="search_radius_unit">miles</string>
+    <string name="search_radius_help">How far each ride\'s pickup and drop-off can be from yours</string>
+    <string name="search_any_date">Any date</string>
+    <string name="search_any_earliest">Earliest: any</string>
+    <string name="search_any_latest">Latest: any</string>
+    <string name="search_earliest">Earliest: %1$s</string>
+    <string name="search_latest">Latest: %1$s</string>
+    <string name="search_clear_date_time">Clear date and time</string>
+    <string name="search_open_seats_only">Only rides with open seats</string>
+    <string name="search_sort_by">Sort by</string>
+    <string name="search_submit">Search</string>
+
+    <string name="search_sort_proximity_then_time">Closest, then earliest</string>
+    <string name="search_sort_proximity">Closest</string>
+    <string name="search_sort_earliest">Earliest first</string>
+    <string name="search_sort_latest">Latest first</string>
+
+    <string name="search_no_results">No rides match your search. Try a bigger radius or fewer filters.</string>
+    <plurals name="search_results_count">
+        <item quantity="one">%d ride found</item>
+        <item quantity="other">%d rides found</item>
+    </plurals>
+
+    <string name="search_result_departure_delayed">%1$s · Delayed</string>
+    <string name="search_result_origin">From %1$s (%2$s from your pickup)</string>
+    <string name="search_result_destination">To %1$s (%2$s from your destination)</string>
+    <string name="search_result_full">Full · %1$s total</string>
+    <plurals name="search_result_seats">
+        <item quantity="one">%1$d seat left · %2$s total</item>
+        <item quantity="other">%1$d seats left · %2$s total</item>
+    </plurals>
+</resources>

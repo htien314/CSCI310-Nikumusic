@@ -1,5 +1,6 @@
 package com.example.trojanrideshare.data;
 
+import com.example.trojanrideshare.model.ActivityStatus;
 import com.example.trojanrideshare.model.Ride;
 import com.example.trojanrideshare.util.Callback;
 import com.example.trojanrideshare.util.Constants;
@@ -8,6 +9,8 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 /** RideRepository backed by the Firestore {@code rides} collection. */
@@ -59,6 +62,16 @@ public class FirestoreRideRepository implements RideRepository {
                     return ride;
                 })
                 .addOnSuccessListener(callback::onSuccess)
+                .addOnFailureListener(callback::onError);
+    }
+
+    @Override
+    public void findActive(Callback<List<Ride>> callback) {
+        // Enums are stored by name. A whereIn on one field needs no composite index.
+        rides.whereIn("activityStatus",
+                        Arrays.asList(ActivityStatus.ON_TIME.name(), ActivityStatus.DELAYED.name()))
+                .get()
+                .addOnSuccessListener(snapshot -> callback.onSuccess(snapshot.toObjects(Ride.class)))
                 .addOnFailureListener(callback::onError);
     }
 }

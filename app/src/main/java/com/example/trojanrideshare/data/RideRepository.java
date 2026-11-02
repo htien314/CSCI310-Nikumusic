@@ -3,6 +3,8 @@ package com.example.trojanrideshare.data;
 import com.example.trojanrideshare.model.Ride;
 import com.example.trojanrideshare.util.Callback;
 
+import java.util.List;
+
 /** Stores and loads rides. Business rules belong in RideService, not here. */
 public interface RideRepository {
 
@@ -18,4 +20,7 @@ public interface RideRepository {
 
     /** Loads the latest ride, applies the change and saves it as one atomic update. */
     void update(String rideId, RideMutation mutation, Callback<Ride> callback);
+
+    /** Loads every ride that is On-Time or Delayed, for ride search (owner: Nikhil). */
+    void findActive(Callback<List<Ride>> callback);
 }

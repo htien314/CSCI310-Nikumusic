@@ -1,9 +1,12 @@
 package com.example.trojanrideshare.data;
 
+import com.example.trojanrideshare.model.ActivityStatus;
 import com.example.trojanrideshare.model.Ride;
 import com.example.trojanrideshare.util.Callback;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -42,5 +45,24 @@ public class FakeRideRepository implements RideRepository {
         } catch (RuntimeException e) {
             callback.onError(e);
         }
+    }
+
+    /** Set this to make findActive fail, like a lost connection. */
+    public Exception findActiveError;
+
+    @Override
+    public void findActive(Callback<List<Ride>> callback) {
+        if (findActiveError != null) {
+            callback.onError(findActiveError);
+            return;
+        }
+        List<Ride> active = new ArrayList<>();
+        for (Ride ride : rides.values()) {
+            if (ride.getActivityStatus() == ActivityStatus.ON_TIME
+                    || ride.getActivityStatus() == ActivityStatus.DELAYED) {
+                active.add(ride);
+            }
+        }
+        callback.onSuccess(active);
     }
 }
