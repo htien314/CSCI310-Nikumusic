@@ -11,24 +11,30 @@ import com.google.firebase.Timestamp;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public final class CostService {
+
+    private static final long OVERDUE_MILLIS =
+            TimeUnit.DAYS.toMillis(7);
 
     private final RideRepository repository;
     private final RideService rideService;
     private final Clock clock;
 
-    // Keep the original constructor for existing tests.
+    // Keep the original constructor for calculation tests.
     public CostService() {
         repository = null;
         rideService = null;
         clock = null;
     }
 
-    // Use this constructor for real ride completion.
+    // Use this constructor for Firestore operations.
     public CostService(RideRepository repository,
                        RideService rideService,
                        Clock clock) {
@@ -37,7 +43,7 @@ public final class CostService {
         this.clock = clock;
     }
 
-    // Calculate shares before saving a completed ride.
+    // Calculate the final shares for an organizer-led completion.
     public Map<String, CostShare> prepareCompletion(
             String organizerId,
             String currentUserId,
@@ -71,14 +77,14 @@ public final class CostService {
         Map<String, CostShare> result = new LinkedHashMap<>();
 
         for (Map.Entry<String, Long> entry : amounts.entrySet()) {
-            result.put(entry.getKey(), new CostShare(
-                    entry.getKey(), entry.getValue()));
+            result.put(entry.getKey(),
+                    new CostShare(entry.getKey(), entry.getValue()));
         }
 
         return result;
     }
 
-    // Complete a ride using one atomic Firestore transaction.
+    // Save ride completion and all final shares atomically.
     public void completeRide(
             String rideId,
             String currentUserId,
@@ -92,36 +98,44 @@ public final class CostService {
             return;
         }
 
-        if (rideId == null || rideId.trim().isEmpty()
-                || currentUserId == null || currentUserId.trim().isEmpty()) {
+        if (isBlank(rideId) || isBlank(currentUserId)) {
             callback.onError(new IllegalArgumentException(
                     "A ride and signed-in user are required."));
             return;
         }
 
-        // Capture defensive input copies before the transaction.
         Map<String, Long> requestedShares = customShares == null
                 ? null : new LinkedHashMap<>(customShares);
 
         repository.update(rideId, ride -> {
 
-            // Check the latest ride state inside the transaction.
+            // Validate against the latest Firestore ride state.
             rideService.checkCanComplete(ride, currentUserId);
 
-            List<String> participantIds = new ArrayList<>();
-            if (ride.getParticipants() == null) {
+            if (ride.getParticipants() == null
+                    || ride.getParticipants().isEmpty()) {
                 throw new IllegalArgumentException(
                         "Ride participants are missing.");
             }
 
+            List<String> participantIds = new ArrayList<>();
+            Set<String> seenIds = new HashSet<>();
+
             for (Participant participant : ride.getParticipants()) {
                 if (participant == null
-                        || participant.getUserId() == null
-                        || participant.getUserId().trim().isEmpty()) {
+                        || isBlank(participant.getUserId())) {
                     throw new IllegalArgumentException(
                             "A ride participant has an invalid ID.");
                 }
-                participantIds.add(participant.getUserId());
+
+                String id = participant.getUserId();
+
+                if (!seenIds.add(id)) {
+                    throw new IllegalArgumentException(
+                            "Duplicate ride participant.");
+                }
+
+                participantIds.add(id);
             }
 
             Map<String, CostShare> shares = prepareCompletion(
@@ -142,10 +156,10 @@ public final class CostService {
         }, callback);
     }
 
-    // Record an individual rider's payment after ride completion.
+    // A rider can mark only their own share as Paid.
     public void markRiderPaid(
             String rideId,
-            String organizerId,
+            String currentUserId,
             String riderId,
             Callback<Ride> callback) {
 
@@ -155,56 +169,44 @@ public final class CostService {
             return;
         }
 
-        if (rideId == null || rideId.trim().isEmpty()
-                || organizerId == null || organizerId.trim().isEmpty()
-                || riderId == null || riderId.trim().isEmpty()) {
+        if (isBlank(rideId)
+                || isBlank(currentUserId)
+                || isBlank(riderId)) {
             callback.onError(new IllegalArgumentException(
-                    "Ride, organizer, and rider IDs are required."));
+                    "Ride and user IDs are required."));
+            return;
+        }
+
+        if (!currentUserId.equals(riderId)) {
+            callback.onError(new IllegalStateException(
+                    "You can only mark your own share as paid."));
             return;
         }
 
         repository.update(rideId, ride -> {
 
-            if (!ride.isOrganizer(organizerId)) {
-                throw new IllegalStateException(
-                        "Only the organizer can record payments.");
-            }
+            requireCompletedRide(ride);
 
-            if (ride.getActivityStatus() != ActivityStatus.COMPLETED) {
-                throw new IllegalStateException(
-                        "The ride must be completed first.");
-            }
-
-            Map<String, CostShare> shares = ride.getCostShares();
-
-            if (shares == null || !shares.containsKey(riderId)) {
-                throw new IllegalArgumentException(
-                        "This rider has no cost share.");
-            }
-
-            CostShare share = shares.get(riderId);
-
-            if (share == null) {
-                throw new IllegalArgumentException(
-                        "This rider has no valid cost share.");
-            }
+            CostShare share = requireShare(ride, riderId);
 
             if (share.isPaid()) {
                 throw new IllegalStateException(
                         "This rider has already paid.");
             }
 
+            // Paid is permanent and also clears an overdue flag.
             share.markPaid();
+
         }, callback);
     }
 
-
-    // A payment becomes overdue seven days after ride completion.
+    // Detect whether an unpaid share is at least 7 days old.
     public boolean isPaymentOverdue(Ride ride, String riderId) {
         if (clock == null || ride == null
                 || ride.getActivityStatus() != ActivityStatus.COMPLETED
                 || ride.getCompletedAt() == null
-                || ride.getCostShares() == null) {
+                || ride.getCostShares() == null
+                || isBlank(riderId)) {
             return false;
         }
 
@@ -214,15 +216,19 @@ public final class CostService {
             return false;
         }
 
-        long sevenDays = java.util.concurrent.TimeUnit.DAYS.toMillis(7);
-        long completedAt = ride.getCompletedAt().toDate().getTime();
+        long completedAt =
+                ride.getCompletedAt().toDate().getTime();
+        long now = clock.nowMillis();
 
-        return clock.nowMillis() >= completedAt + sevenDays;
+        return now >= completedAt
+                && now - completedAt >= OVERDUE_MILLIS;
     }
 
-    // Update overdue flags using the latest ride data.
-    public void refreshOverdueFlags(
+    // Only the organizer can flag a rider after 7 days.
+    public void flagRider(
             String rideId,
+            String currentUserId,
+            String riderId,
             Callback<Ride> callback) {
 
         if (repository == null || clock == null) {
@@ -231,34 +237,79 @@ public final class CostService {
             return;
         }
 
-        if (rideId == null || rideId.trim().isEmpty()) {
+        if (isBlank(rideId)
+                || isBlank(currentUserId)
+                || isBlank(riderId)) {
             callback.onError(new IllegalArgumentException(
-                    "A ride ID is required."));
+                    "Ride and user IDs are required."));
             return;
         }
 
         repository.update(rideId, ride -> {
-            if (ride.getActivityStatus() != ActivityStatus.COMPLETED
-                    || ride.getCompletedAt() == null
-                    || ride.getCostShares() == null) {
+
+            if (!ride.isOrganizer(currentUserId)) {
                 throw new IllegalStateException(
-                        "This ride has no completed payment records.");
+                        "Only the organizer can flag riders.");
             }
 
-            for (Map.Entry<String, CostShare> entry
-                    : ride.getCostShares().entrySet()) {
+            requireCompletedRide(ride);
 
-                CostShare share = entry.getValue();
+            CostShare share = requireShare(ride, riderId);
 
-                if (share == null) {
-                    throw new IllegalStateException(
-                            "A payment record is missing.");
-                }
-
-                share.setFlagged(
-                        isPaymentOverdue(ride, entry.getKey()));
+            if (share.isPaid()) {
+                throw new IllegalStateException(
+                        "Paid riders cannot be flagged.");
             }
+
+            if (!isPaymentOverdue(ride, riderId)) {
+                throw new IllegalStateException(
+                        "A rider can only be flagged after 7 days.");
+            }
+
+            if (share.isFlagged()) {
+                throw new IllegalStateException(
+                        "This rider is already flagged.");
+            }
+
+            share.setFlagged(true);
+
         }, callback);
     }
 
+    // Kept for compatibility, but automatic flag writes are disabled.
+    @Deprecated
+    public void refreshOverdueFlags(
+            String rideId,
+            Callback<Ride> callback) {
+
+        callback.onError(new UnsupportedOperationException(
+                "Use organizer-controlled flagRider instead."));
+    }
+
+    private static void requireCompletedRide(Ride ride) {
+        if (ride == null
+                || ride.getActivityStatus() != ActivityStatus.COMPLETED
+                || ride.getCostShares() == null
+                || ride.getCompletedAt() == null) {
+            throw new IllegalStateException(
+                    "The ride must be completed first.");
+        }
+    }
+
+    private static CostShare requireShare(
+            Ride ride, String riderId) {
+
+        CostShare share = ride.getCostShares().get(riderId);
+
+        if (share == null) {
+            throw new IllegalArgumentException(
+                    "This rider has no valid cost share.");
+        }
+
+        return share;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
 }

@@ -89,26 +89,116 @@ public class OverduePaymentTest {
     }
 
     @Test
-    public void refreshFlagsUnpaidRiders() {
+    public void organizerCanFlagOverdueUnpaidRider() {
         TestCallback callback = new TestCallback();
 
-        service.refreshOverdueFlags("ride1", callback);
+        service.flagRider("ride1", "alice", "bob", callback);
 
         assertTrue(callback.success);
-        assertTrue(ride.getCostShares().get("alice").isFlagged());
+        assertNull(callback.error);
+        assertTrue(ride.getCostShares().get("bob").isFlagged());
+        assertFalse(ride.getCostShares().get("alice").isFlagged());
+    }
+
+    @Test
+    public void nonOrganizerCannotFlagRider() {
+        TestCallback callback = new TestCallback();
+
+        service.flagRider("ride1", "bob", "bob", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
+        assertFalse(ride.getCostShares().get("bob").isFlagged());
+    }
+
+    @Test
+    public void organizerCannotFlagBeforeSevenDays() {
+        ride.setCompletedAt(
+                new Timestamp(new Date(NOW - 6 * DAY)));
+
+        TestCallback callback = new TestCallback();
+
+        service.flagRider("ride1", "alice", "bob", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
+        assertFalse(ride.getCostShares().get("bob").isFlagged());
+    }
+
+    @Test
+    public void organizerCanFlagAtExactlySevenDays() {
+        ride.setCompletedAt(
+                new Timestamp(new Date(NOW - 7 * DAY)));
+
+        TestCallback callback = new TestCallback();
+
+        service.flagRider("ride1", "alice", "bob", callback);
+
+        assertTrue(callback.success);
+        assertNull(callback.error);
         assertTrue(ride.getCostShares().get("bob").isFlagged());
     }
 
     @Test
-    public void refreshDoesNotFlagPaidRiders() {
-        ride.getCostShares().get("alice").markPaid();
+    public void organizerCannotFlagPaidRider() {
+        ride.getCostShares().get("bob").markPaid();
+
         TestCallback callback = new TestCallback();
 
-        service.refreshOverdueFlags("ride1", callback);
+        service.flagRider("ride1", "alice", "bob", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
+        assertFalse(ride.getCostShares().get("bob").isFlagged());
+    }
+
+    @Test
+    public void organizerCannotFlagIncompleteRide() {
+        ride.setActivityStatus(ActivityStatus.ON_TIME);
+
+        TestCallback callback = new TestCallback();
+
+        service.flagRider("ride1", "alice", "bob", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
+    }
+
+    @Test
+    public void duplicateFlagIsRejected() {
+        ride.getCostShares().get("bob").setFlagged(true);
+
+        TestCallback callback = new TestCallback();
+
+        service.flagRider("ride1", "alice", "bob", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
+        assertTrue(ride.getCostShares().get("bob").isFlagged());
+    }
+
+    @Test
+    public void flaggedRiderCanMarkOwnPaymentPaid() {
+        ride.getCostShares().get("bob").setFlagged(true);
+
+        TestCallback callback = new TestCallback();
+
+        service.markRiderPaid("ride1", "bob", "bob", callback);
 
         assertTrue(callback.success);
-        assertFalse(ride.getCostShares().get("alice").isFlagged());
-        assertTrue(ride.getCostShares().get("bob").isFlagged());
+        assertNull(callback.error);
+        assertTrue(ride.getCostShares().get("bob").isPaid());
+        assertFalse(ride.getCostShares().get("bob").isFlagged());
+    }
+
+    @Test
+    public void unknownRiderCannotBeFlagged() {
+        TestCallback callback = new TestCallback();
+
+        service.flagRider("ride1", "alice", "charlie", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
     }
 
     private static class TestCallback implements Callback<Ride> {
