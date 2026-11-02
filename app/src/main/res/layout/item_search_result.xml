@@ -48,5 +48,14 @@
             android:layout_marginTop="6dp"
             android:textAppearance="?attr/textAppearanceLabelLarge" />
 
+        <Button
+            android:id="@+id/request_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="4dp"
+            android:text="@string/search_request_to_join" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

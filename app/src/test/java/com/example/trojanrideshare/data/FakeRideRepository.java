@@ -65,4 +65,21 @@ public class FakeRideRepository implements RideRepository {
         }
         callback.onSuccess(active);
     }
+
+    /** Live listeners that haven't been cancelled. */
+    public final List<Callback<List<Ride>>> listeners = new ArrayList<>();
+
+    @Override
+    public Subscription listenToActive(Callback<List<Ride>> callback) {
+        listeners.add(callback);
+        findActive(callback);
+        return () -> listeners.remove(callback);
+    }
+
+    /** Call after changing rides in a test to push the update to live listeners, like Firestore would. */
+    public void notifyListeners() {
+        for (Callback<List<Ride>> listener : new ArrayList<>(listeners)) {
+            findActive(listener);
+        }
+    }
 }

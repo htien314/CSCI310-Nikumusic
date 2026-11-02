@@ -13,7 +13,9 @@
     <string name="search_earliest">Earliest: %1$s</string>
     <string name="search_latest">Latest: %1$s</string>
     <string name="search_clear_date_time">Clear date and time</string>
-    <string name="search_open_seats_only">Only rides with open seats</string>
+    <string name="search_open_seats">Open seats</string>
+    <string name="search_seats_any">Any (include full rides)</string>
+    <string name="search_seats_at_least">At least %1$d</string>
     <string name="search_sort_by">Sort by</string>
     <string name="search_submit">Search</string>
 
@@ -22,6 +24,12 @@
     <string name="search_sort_earliest">Earliest first</string>
     <string name="search_sort_latest">Latest first</string>
 
+    <string name="search_upcoming_heading">Upcoming rides with open seats</string>
+    <string name="search_no_upcoming">No upcoming rides with open seats right now.</string>
+    <string name="search_show_upcoming">Show all upcoming</string>
+    <string name="search_request_to_join">Request to join</string>
+    <string name="search_result_origin_plain">From %1$s</string>
+    <string name="search_result_destination_plain">To %1$s</string>
     <string name="search_no_results">No rides match your search. Try a bigger radius or fewer filters.</string>
     <plurals name="search_results_count">
         <item quantity="one">%d ride found</item>

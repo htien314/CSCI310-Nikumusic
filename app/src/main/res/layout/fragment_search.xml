@@ -17,33 +17,19 @@
             android:text="@string/search_heading"
             android:textAppearance="?attr/textAppearanceHeadlineSmall" />
 
-        <com.google.android.material.textfield.TextInputLayout
+        <com.example.trojanrideshare.ui.common.LocationPickerView
+            android:id="@+id/pickup_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            android:hint="@string/search_pickup">
+            android:hint="@string/search_pickup" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/pickup_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPostalAddress"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
+        <com.example.trojanrideshare.ui.common.LocationPickerView
+            android:id="@+id/destination_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            android:hint="@string/search_destination">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/destination_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPostalAddress"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:hint="@string/search_destination" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -100,11 +86,17 @@
             android:layout_gravity="end"
             android:text="@string/search_clear_date_time" />
 
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/open_seats_checkbox"
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/search_open_seats_only" />
+            android:text="@string/search_open_seats"
+            android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+        <Spinner
+            android:id="@+id/seats_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -130,14 +122,30 @@
             android:id="@+id/loading_error"
             layout="@layout/view_loading_error" />
 
-        <TextView
-            android:id="@+id/results_summary"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:visibility="gone" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/results_summary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/clear_search_button"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/search_show_upcoming"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/results_list"

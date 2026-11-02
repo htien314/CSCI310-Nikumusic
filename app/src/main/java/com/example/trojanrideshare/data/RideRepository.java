@@ -13,6 +13,11 @@ public interface RideRepository {
         void apply(Ride ride);
     }
 
+    /** Stops a live listener. Safe to call more than once. */
+    interface Subscription {
+        void cancel();
+    }
+
     /** Saves a new ride and reports it back with its generated ID. */
     void create(Ride ride, Callback<Ride> callback);
 
@@ -21,6 +26,16 @@ public interface RideRepository {
     /** Loads the latest ride, applies the change and saves it as one atomic update. */
     void update(String rideId, RideMutation mutation, Callback<Ride> callback);
 
-    /** Loads every ride that is On-Time or Delayed, for ride search (owner: Nikhil). */
+    /**
+     * Loads every ride that is On-Time or Delayed, for ride search (owner: Nikhil).
+     * Errors: {@link SecurityException} if the database rules deny the read, {@link java.io.IOException}
+     * if the database can't be reached.
+     */
     void findActive(Callback<List<Ride>> callback);
+
+    /**
+     * Like {@link #findActive}, but reports the list again whenever any active ride changes, so search
+     * results stay current while other users join, leave, delay or cancel rides (owner: Nikhil).
+     */
+    Subscription listenToActive(Callback<List<Ride>> callback);
 }

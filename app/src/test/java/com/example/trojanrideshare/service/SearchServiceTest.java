@@ -1,6 +1,7 @@
 package com.example.trojanrideshare.service;
 
 import com.example.trojanrideshare.data.FakeRideRepository;
+import com.example.trojanrideshare.data.RideRepository;
 import com.example.trojanrideshare.model.ActivityStatus;
 import com.example.trojanrideshare.model.Location;
 import com.example.trojanrideshare.model.Participant;
@@ -13,11 +14,13 @@ import com.google.firebase.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -41,6 +44,7 @@ public class SearchServiceTest {
     private SearchService service;
     private List<SearchResult> results;
     private Exception error;
+    private int updates;
 
     @Before
     public void setUp() {
@@ -48,6 +52,7 @@ public class SearchServiceTest {
         service = new SearchService(repository, () -> NOW.toInstant().toEpochMilli());
         results = null;
         error = null;
+        updates = 0;
     }
 
     // ---- helpers ----
@@ -69,31 +74,38 @@ public class SearchServiceTest {
         return addRide(id, origin, destination, departure, 4);
     }
 
-    private void fill(Ride ride) {
-        while (ride.getAvailableSeats() > 0) {
-            ride.getParticipants().add(new Participant("rider" + ride.getParticipants().size(), "Rider",
-                    at(NOW)));
-        }
+    private static void addRider(Ride ride, String userId) {
+        ride.getParticipants().add(new Participant(userId, "Rider", at(NOW)));
         ride.syncCapacityStatus();
     }
 
-    private SearchCriteria criteria(Location pickup, Location destination, double radius) {
-        return new SearchCriteria(pickup, destination, radius, null, null, null, false,
-                RideSortOrder.PROXIMITY_THEN_TIME);
+    private static void fill(Ride ride) {
+        while (ride.getAvailableSeats() > 0) {
+            addRider(ride, "rider" + ride.getParticipants().size());
+        }
     }
 
-    private void search(SearchCriteria criteria) {
-        service.search(criteria, new Callback<List<SearchResult>>() {
+    private static SearchCriteria.Builder criteria(Location pickup, Location destination, double radius) {
+        return new SearchCriteria.Builder(pickup, destination, radius);
+    }
+
+    private Callback<List<SearchResult>> collector() {
+        return new Callback<List<SearchResult>>() {
             @Override
             public void onSuccess(List<SearchResult> result) {
                 results = result;
+                updates++;
             }
 
             @Override
             public void onError(Exception e) {
                 error = e;
             }
-        });
+        };
+    }
+
+    private void search(SearchCriteria.Builder criteria) {
+        service.search(criteria.build(), collector());
     }
 
     private List<String> ids() {
@@ -106,10 +118,10 @@ public class SearchServiceTest {
     }
 
     private void assertIds(String... expected) {
-        assertEquals(java.util.Arrays.asList(expected), ids());
+        assertEquals(Arrays.asList(expected), ids());
     }
 
-    // ---- radius (UR-3.3) ----
+    // ---- radius: both ends must match (UR-3.3) ----
 
     @Test
     public void matchesWhenBothEndsAreWithinRadius() {
@@ -124,14 +136,14 @@ public class SearchServiceTest {
     }
 
     @Test
-    public void excludesRideWhenOriginIsOutsideRadius() {
+    public void excludesRideWhenOnlyDestinationMatches() {
         addRide("farOrigin", UNION_STATION, LAX, NOW.plusDays(1));
         search(criteria(USC_VILLAGE, LAX, 2));
         assertIds();
     }
 
     @Test
-    public void excludesRideWhenDestinationIsOutsideRadius() {
+    public void excludesRideWhenOnlyOriginMatches() {
         addRide("farDestination", USC_VILLAGE, SANTA_MONICA, NOW.plusDays(1));
         search(criteria(USC_VILLAGE, LAX, 2));
         assertIds();
@@ -149,6 +161,42 @@ public class SearchServiceTest {
         addRide("reversed", LAX, USC_VILLAGE, NOW.plusDays(1));
         search(criteria(USC_VILLAGE, LAX, 2));
         assertIds();
+    }
+
+    @Test
+    public void rideExactlyOnTheRadiusBoundaryMatches() {
+        addRide("edge", FIGUEROA, LAX, NOW.plusDays(1));
+        double exact = USC_VILLAGE.distanceMilesTo(FIGUEROA);
+
+        search(criteria(USC_VILLAGE, LAX, exact));
+        assertIds("edge");
+
+        search(criteria(USC_VILLAGE, LAX, exact - 0.001));
+        assertIds();
+    }
+
+    @Test
+    public void destinationBoundaryIsCheckedSeparately() {
+        addRide("edge", USC_VILLAGE, LAX_HOTELS, NOW.plusDays(1));
+        double exact = LAX.distanceMilesTo(LAX_HOTELS);
+
+        search(criteria(USC_VILLAGE, LAX, exact));
+        assertIds("edge");
+
+        search(criteria(USC_VILLAGE, LAX, exact - 0.001));
+        assertIds();
+    }
+
+    @Test
+    public void skipsRidesWithMalformedLocations() {
+        Ride noOrigin = addRide("noOrigin", USC_VILLAGE, LAX, NOW.plusDays(1));
+        noOrigin.setOrigin(null);
+        Ride badCoordinates = addRide("badCoordinates", USC_VILLAGE, LAX, NOW.plusDays(1));
+        badCoordinates.setDestination(new Location("Nowhere", 200, 500));
+        addRide("good", USC_VILLAGE, LAX, NOW.plusDays(1));
+
+        search(criteria(USC_VILLAGE, LAX, 2));
+        assertIds("good");
     }
 
     // ---- status and time ----
@@ -170,7 +218,8 @@ public class SearchServiceTest {
         completed.setActivityStatus(ActivityStatus.COMPLETED);
         // Search re-checks status even if the repository returns them
         List<Ride> all = new ArrayList<>(repository.rides.values());
-        assertTrue(service.filterAndSort(all, criteria(USC_VILLAGE, LAX, 2)).isEmpty());
+        assertTrue(service.filterAndSort(all, criteria(USC_VILLAGE, LAX, 2).build()).isEmpty());
+        assertTrue(service.upcoming(all, null).isEmpty());
     }
 
     @Test
@@ -190,18 +239,57 @@ public class SearchServiceTest {
         assertIds("delayed");
     }
 
+    // ---- other users' rides only ----
+
+    @Test
+    public void excludesRidesTheUserOrganizes() {
+        addRide("mine", USC_VILLAGE, LAX, NOW.plusDays(1));
+        addRide("theirs", USC_VILLAGE, LAX, NOW.plusDays(2));
+        search(criteria(USC_VILLAGE, LAX, 2).excludeRidesOf("organizer-mine").sortOrder(RideSortOrder.EARLIEST_FIRST));
+        assertIds("theirs");
+    }
+
+    @Test
+    public void excludesRidesTheUserAlreadyJoined() {
+        Ride joined = addRide("joined", USC_VILLAGE, LAX, NOW.plusDays(1));
+        addRider(joined, "me");
+        addRide("other", USC_VILLAGE, LAX, NOW.plusDays(2));
+        search(criteria(USC_VILLAGE, LAX, 2).excludeRidesOf("me").sortOrder(RideSortOrder.EARLIEST_FIRST));
+        assertIds("other");
+    }
+
+    @Test
+    public void noUserMeansNothingIsExcluded() {
+        addRide("ride", USC_VILLAGE, LAX, NOW.plusDays(1));
+        search(criteria(USC_VILLAGE, LAX, 2).excludeRidesOf(null));
+        assertIds("ride");
+    }
+
     // ---- filters (UR-3.4) ----
 
     @Test
-    public void fullRidesShowUnlessOpenSeatsOnly() {
+    public void fullRidesShowOnlyWhenSeatsFilterIsAny() {
         fill(addRide("full", USC_VILLAGE, LAX, NOW.plusDays(1)));
         addRide("open", USC_VILLAGE, LAX, NOW.plusDays(2));
 
-        search(criteria(USC_VILLAGE, LAX, 2));
+        search(criteria(USC_VILLAGE, LAX, 2).minSeats(0).sortOrder(RideSortOrder.EARLIEST_FIRST));
         assertIds("full", "open");
 
-        search(new SearchCriteria(USC_VILLAGE, LAX, 2, null, null, null, true, RideSortOrder.EARLIEST_FIRST));
+        search(criteria(USC_VILLAGE, LAX, 2).minSeats(1).sortOrder(RideSortOrder.EARLIEST_FIRST));
         assertIds("open");
+    }
+
+    @Test
+    public void minSeatsFilterBoundary() {
+        Ride twoLeft = addRide("twoLeft", USC_VILLAGE, LAX, NOW.plusDays(1), 4);
+        addRider(twoLeft, "rider");
+        addRide("threeLeft", USC_VILLAGE, LAX, NOW.plusDays(2), 4);
+
+        search(criteria(USC_VILLAGE, LAX, 2).minSeats(2).sortOrder(RideSortOrder.EARLIEST_FIRST));
+        assertIds("twoLeft", "threeLeft");
+
+        search(criteria(USC_VILLAGE, LAX, 2).minSeats(3).sortOrder(RideSortOrder.EARLIEST_FIRST));
+        assertIds("threeLeft");
     }
 
     @Test
@@ -210,8 +298,7 @@ public class SearchServiceTest {
         addRide("lateNov2", USC_VILLAGE, LAX, ZonedDateTime.of(2026, 11, 2, 23, 30, 0, 0, LA));
         addRide("nov3", USC_VILLAGE, LAX, ZonedDateTime.of(2026, 11, 3, 9, 0, 0, 0, LA));
 
-        search(new SearchCriteria(USC_VILLAGE, LAX, 2, LocalDate.of(2026, 11, 2), null, null, false,
-                RideSortOrder.EARLIEST_FIRST));
+        search(criteria(USC_VILLAGE, LAX, 2).date(LocalDate.of(2026, 11, 2)));
         assertIds("lateNov2");
     }
 
@@ -222,8 +309,8 @@ public class SearchServiceTest {
         addRide("end", USC_VILLAGE, LAX, ZonedDateTime.of(2026, 11, 2, 10, 0, 0, 0, LA));
         addRide("late", USC_VILLAGE, LAX, ZonedDateTime.of(2026, 11, 2, 10, 1, 0, 0, LA));
 
-        search(new SearchCriteria(USC_VILLAGE, LAX, 2, null, LocalTime.of(8, 0), LocalTime.of(10, 0), false,
-                RideSortOrder.EARLIEST_FIRST));
+        search(criteria(USC_VILLAGE, LAX, 2).timeWindow(LocalTime.of(8, 0), LocalTime.of(10, 0))
+                .sortOrder(RideSortOrder.EARLIEST_FIRST));
         assertIds("start", "end");
     }
 
@@ -232,13 +319,21 @@ public class SearchServiceTest {
         addRide("morning", USC_VILLAGE, LAX, ZonedDateTime.of(2026, 11, 2, 9, 0, 0, 0, LA));
         addRide("evening", USC_VILLAGE, LAX, ZonedDateTime.of(2026, 11, 2, 18, 0, 0, 0, LA));
 
-        search(new SearchCriteria(USC_VILLAGE, LAX, 2, null, LocalTime.of(12, 0), null, false,
-                RideSortOrder.EARLIEST_FIRST));
+        search(criteria(USC_VILLAGE, LAX, 2).timeWindow(LocalTime.of(12, 0), null));
         assertIds("evening");
 
-        search(new SearchCriteria(USC_VILLAGE, LAX, 2, null, null, LocalTime.of(12, 0), false,
-                RideSortOrder.EARLIEST_FIRST));
+        search(criteria(USC_VILLAGE, LAX, 2).timeWindow(null, LocalTime.of(12, 0)));
         assertIds("morning");
+    }
+
+    @Test
+    public void timeWindowUsesDelayedTime() {
+        Ride ride = addRide("delayed", USC_VILLAGE, LAX, ZonedDateTime.of(2026, 11, 2, 9, 0, 0, 0, LA));
+        ride.setActivityStatus(ActivityStatus.DELAYED);
+        ride.setDelayedDepartureTime(at(ZonedDateTime.of(2026, 11, 2, 11, 0, 0, 0, LA)));
+
+        search(criteria(USC_VILLAGE, LAX, 2).timeWindow(LocalTime.of(10, 30), LocalTime.of(11, 30)));
+        assertIds("delayed");
     }
 
     @Test
@@ -261,7 +356,7 @@ public class SearchServiceTest {
     }
 
     private void searchSorted(RideSortOrder order) {
-        search(new SearchCriteria(USC_VILLAGE, LAX, 2, null, null, null, false, order));
+        search(criteria(USC_VILLAGE, LAX, 2).sortOrder(order));
     }
 
     @Test
@@ -305,9 +400,65 @@ public class SearchServiceTest {
         assertIds("farEarly", "middle", "farLate", "close");
     }
 
+    // ---- browsing ----
+
+    @Test
+    public void upcomingListsOtherUsersOpenRidesEarliestFirst() {
+        addRide("later", USC_VILLAGE, LAX, NOW.plusDays(2));
+        addRide("sooner", UNION_STATION, SANTA_MONICA, NOW.plusDays(1));
+        addRide("mine", USC_VILLAGE, LAX, NOW.plusHours(1));
+        fill(addRide("full", USC_VILLAGE, LAX, NOW.plusHours(2)));
+        addRide("past", USC_VILLAGE, LAX, NOW.minusHours(1));
+
+        service.watchUpcoming("organizer-mine", collector());
+        assertIds("sooner", "later");
+    }
+
+    // ---- live updates ----
+
+    @Test
+    public void watchReportsAgainWhenRidesChange() {
+        Ride ride = addRide("ride", USC_VILLAGE, LAX, NOW.plusDays(1));
+        RideRepository.Subscription subscription = service.watch(criteria(USC_VILLAGE, LAX, 2).build(), collector());
+        assertIds("ride");
+
+        // Another user cancels the ride
+        ride.setActivityStatus(ActivityStatus.CANCELLED);
+        repository.notifyListeners();
+        assertIds();
+        assertEquals(2, updates);
+
+        subscription.cancel();
+        addRide("new", USC_VILLAGE, LAX, NOW.plusDays(1));
+        repository.notifyListeners();
+        assertEquals("No updates after cancel", 2, updates);
+        assertTrue(repository.listeners.isEmpty());
+    }
+
+    @Test
+    public void watchDropsRideWhenItFillsUpAndSeatsAreRequired() {
+        Ride ride = addRide("ride", USC_VILLAGE, LAX, NOW.plusDays(1));
+        service.watch(criteria(USC_VILLAGE, LAX, 2).minSeats(1).build(), collector());
+        assertIds("ride");
+
+        fill(ride);
+        repository.notifyListeners();
+        assertIds();
+    }
+
+    @Test
+    public void watchWithBadCriteriaReportsErrorAndDoesNotListen() {
+        RideRepository.Subscription subscription = service.watch(criteria(USC_VILLAGE, LAX, 0).build(), collector());
+        assertNotNull(error);
+        assertTrue(repository.listeners.isEmpty());
+        subscription.cancel();
+    }
+
     // ---- validation and errors ----
 
-    private void assertRejected(SearchCriteria criteria, String message) {
+    private void assertRejected(SearchCriteria.Builder criteria, String message) {
+        results = null;
+        error = null;
         search(criteria);
         assertNull(results);
         assertNotNull(error);
@@ -318,6 +469,7 @@ public class SearchServiceTest {
     public void rejectsMissingLocations() {
         assertRejected(criteria(null, LAX, 2), "Enter a pickup location and a destination.");
         assertRejected(criteria(USC_VILLAGE, null, 2), "Enter a pickup location and a destination.");
+        assertRejected(criteria(new Location("", 34, -118), LAX, 2), "Enter a pickup location and a destination.");
     }
 
     @Test
@@ -329,11 +481,31 @@ public class SearchServiceTest {
     }
 
     @Test
-    public void reportsFriendlyMessageWhenLoadingFails() {
-        repository.findActiveError = new RuntimeException("UNAVAILABLE");
+    public void acceptsMaximumRadius() {
+        search(criteria(USC_VILLAGE, LAX, 100));
+        assertNull(error);
+    }
+
+    @Test
+    public void rejectsBadSeatCount() {
+        assertRejected(criteria(USC_VILLAGE, LAX, 2).minSeats(-1), "Open seats has to be between 0 and 5.");
+        assertRejected(criteria(USC_VILLAGE, LAX, 2).minSeats(6), "Open seats has to be between 0 and 5.");
+    }
+
+    @Test
+    public void networkFailureGivesFriendlyMessage() {
+        repository.findActiveError = new IOException("UNAVAILABLE");
         search(criteria(USC_VILLAGE, LAX, 2));
         assertNull(results);
         assertEquals("Couldn't load rides. Check your connection and try again.", error.getMessage());
+    }
+
+    @Test
+    public void permissionFailureSaysToLogIn() {
+        repository.findActiveError = new SecurityException("PERMISSION_DENIED");
+        search(criteria(USC_VILLAGE, LAX, 2));
+        assertNull(results);
+        assertEquals("You don't have permission to see rides. Make sure you're logged in.", error.getMessage());
     }
 
     @Test

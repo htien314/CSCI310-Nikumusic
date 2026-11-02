@@ -12,6 +12,7 @@ import androidx.lifecycle.viewmodel.CreationExtras;
 
 import com.example.trojanrideshare.data.FirestoreRideRepository;
 import com.example.trojanrideshare.data.GeocoderLocationGateway;
+import com.example.trojanrideshare.data.RideRepository;
 import com.example.trojanrideshare.model.Location;
 import com.example.trojanrideshare.model.RideSortOrder;
 import com.example.trojanrideshare.model.SearchCriteria;
@@ -28,7 +29,10 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Holds the search form's filters and results, and turns the form into a SearchService call. */
+/**
+ * State for the search screen. Before a search it lists upcoming rides to browse; after a search it
+ * shows the matches. Both lists update live as other users change rides.
+ */
 public class SearchViewModel extends ViewModel {
 
     public static final double DEFAULT_RADIUS_MILES = 5;
@@ -50,11 +54,18 @@ public class SearchViewModel extends ViewModel {
 
     private final MutableLiveData<UiState> state = new MutableLiveData<>(UiState.idle());
     private final MutableLiveData<List<SearchResult>> results = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> searching = new MutableLiveData<>(false);
     private final MutableLiveData<LocalDate> date = new MutableLiveData<>();
     private final MutableLiveData<LocalTime> earliestTime = new MutableLiveData<>();
     private final MutableLiveData<LocalTime> latestTime = new MutableLiveData<>();
     private final MutableLiveData<RideSortOrder> sortOrder =
             new MutableLiveData<>(RideSortOrder.PROXIMITY_THEN_TIME);
+
+    @Nullable
+    private RideRepository.Subscription subscription;
+    // Each browse/search bumps this, so answers from an older request are ignored.
+    private int generation;
+    private boolean started;
 
     public SearchViewModel(SearchService searchService, LocationGateway locations) {
         this.searchService = searchService;
@@ -65,9 +76,14 @@ public class SearchViewModel extends ViewModel {
         return state;
     }
 
-    /** Null until the first search finishes; an empty list means nothing matched. */
+    /** Null until the first list arrives; an empty list means nothing to show. */
     public LiveData<List<SearchResult>> getResults() {
         return results;
+    }
+
+    /** False while browsing upcoming rides, true while showing search results. */
+    public LiveData<Boolean> getSearching() {
+        return searching;
     }
 
     public LiveData<LocalDate> getDate() {
@@ -105,25 +121,40 @@ public class SearchViewModel extends ViewModel {
         latestTime.setValue(null);
     }
 
-    /** Re-sorts the results already shown, without searching again. */
+    /** Re-sorts the search results already shown, without searching again. */
     public void setSortOrder(RideSortOrder order) {
         if (order == null || order == sortOrder.getValue()) {
             return;
         }
         sortOrder.setValue(order);
         List<SearchResult> current = results.getValue();
-        if (current != null) {
-            List<SearchResult> resorted = new ArrayList<>(current);
-            SearchService.sort(resorted, order);
-            results.setValue(resorted);
+        if (Boolean.TRUE.equals(searching.getValue()) && current != null) {
+            results.setValue(sorted(current));
         }
     }
 
-    public void search(String pickupQuery, String destinationQuery, String radiusText, boolean openSeatsOnly) {
-        if (state.getValue() != null && state.getValue().isLoading()) {
-            return;
+    /** Starts browsing the first time the screen opens; does nothing after rotation or coming back. */
+    public void start(@Nullable String currentUserId) {
+        if (!started) {
+            started = true;
+            browse(currentUserId);
         }
-        if (isBlank(pickupQuery) || isBlank(destinationQuery)) {
+    }
+
+    /** Lists upcoming rides with open seats that other users posted, earliest first. */
+    public void browse(@Nullable String currentUserId) {
+        int request = beginRequest(false);
+        subscription = searchService.watchUpcoming(currentUserId, resultsCallback(request));
+    }
+
+    /**
+     * Searches. For each location, a place the user already picked is used as is; otherwise the typed
+     * text is looked up and the best match is used.
+     */
+    public void search(@Nullable Location pickupChoice, String pickupText,
+                       @Nullable Location destinationChoice, String destinationText,
+                       String radiusText, int minSeats, @Nullable String currentUserId) {
+        if ((pickupChoice == null && isBlank(pickupText)) || (destinationChoice == null && isBlank(destinationText))) {
             state.setValue(UiState.error("Enter a pickup location and a destination."));
             return;
         }
@@ -135,39 +166,89 @@ public class SearchViewModel extends ViewModel {
             return;
         }
 
-        state.setValue(UiState.loading());
-        locations.lookup(pickupQuery, afterLookup(pickup ->
-                locations.lookup(destinationQuery, afterLookup(destination -> {
-                    SearchCriteria criteria = new SearchCriteria(pickup, destination, radius,
-                            date.getValue(), earliestTime.getValue(), latestTime.getValue(),
-                            openSeatsOnly, sortOrder.getValue());
-                    searchService.search(criteria, new Callback<List<SearchResult>>() {
-                        @Override
-                        public void onSuccess(List<SearchResult> found) {
-                            results.setValue(found);
-                            state.setValue(UiState.success());
-                        }
-
-                        @Override
-                        public void onError(Exception e) {
-                            showError(e);
-                        }
-                    });
-                }))));
+        int request = beginRequest(true);
+        resolve(pickupChoice, pickupText, request, pickup ->
+                resolve(destinationChoice, destinationText, request, destination -> {
+                    SearchCriteria criteria = new SearchCriteria.Builder(pickup, destination, radius)
+                            .date(date.getValue())
+                            .timeWindow(earliestTime.getValue(), latestTime.getValue())
+                            .minSeats(minSeats)
+                            .excludeRidesOf(currentUserId)
+                            .sortOrder(sortOrder.getValue())
+                            .build();
+                    subscription = searchService.watch(criteria, resultsCallback(request));
+                }));
     }
 
-    private Callback<Location> afterLookup(LocationStep next) {
-        return new Callback<Location>() {
+    @Override
+    protected void onCleared() {
+        stopListening();
+    }
+
+    /** Stops the old list, marks a new request and shows loading. Returns the request number. */
+    private int beginRequest(boolean isSearch) {
+        stopListening();
+        generation++;
+        searching.setValue(isSearch);
+        results.setValue(null);
+        state.setValue(UiState.loading());
+        return generation;
+    }
+
+    private void stopListening() {
+        if (subscription != null) {
+            subscription.cancel();
+            subscription = null;
+        }
+    }
+
+    private Callback<List<SearchResult>> resultsCallback(int request) {
+        return new Callback<List<SearchResult>>() {
             @Override
-            public void onSuccess(Location location) {
-                next.run(location);
+            public void onSuccess(List<SearchResult> found) {
+                if (request != generation) {
+                    return;
+                }
+                // A live update re-filters with the original criteria, but the sort may have changed since.
+                results.setValue(Boolean.TRUE.equals(searching.getValue()) ? sorted(found) : found);
+                state.setValue(UiState.success());
             }
 
             @Override
             public void onError(Exception e) {
-                showError(e);
+                if (request == generation) {
+                    showError(e);
+                }
             }
         };
+    }
+
+    private void resolve(@Nullable Location choice, String text, int request, LocationStep next) {
+        if (choice != null) {
+            next.run(choice);
+            return;
+        }
+        locations.lookup(text, new Callback<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                if (request == generation) {
+                    next.run(location);
+                }
+            }
+
+            @Override
+            public void onError(Exception e) {
+                if (request == generation) {
+                    showError(e);
+                }
+            }
+        });
+    }
+
+    private List<SearchResult> sorted(List<SearchResult> list) {
+        List<SearchResult> copy = new ArrayList<>(list);
+        SearchService.sort(copy, sortOrder.getValue());
+        return copy;
     }
 
     private void showError(Exception e) {
