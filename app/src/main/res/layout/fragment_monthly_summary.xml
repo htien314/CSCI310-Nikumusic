@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#FBF7FF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Monthly ride summary ✨"
+            android:textColor="#35244F"
+            android:textSize="27sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Your rides and spending at a glance!"
+            android:textColor="#746985"
+            android:textSize="15sp" />
+
+        <!-- Select the month to review. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/buttonPreviousMonth"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="‹"
+                android:contentDescription="Previous month" />
+
+            <TextView
+                android:id="@+id/textSelectedMonth"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="November 2026"
+                android:textColor="#35244F"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/buttonNextMonth"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:contentDescription="Next month" />
+        </LinearLayout>
+
+        <!-- Monthly financial totals. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:background="#EEE5F8">
+
+            <TextView
+                android:id="@+id/textRideCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Completed rides: —"
+                android:textColor="#35244F"
+                android:textSize="17sp" />
+
+            <!-- Number of rides organized by this user. -->
+            <TextView
+                android:id="@+id/textOrganizedCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Rides organized: —"
+                android:textColor="#35244F"
+                android:textSize="17sp" />
+
+            <!-- Number of rides joined by this user. -->
+            <TextView
+                android:id="@+id/textJoinedCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Rides joined: —"
+                android:textColor="#35244F"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/textTotalCost"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Total ride costs: —"
+                android:textColor="#35244F"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/textMyShare"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="My share: —"
+                android:textColor="#35244F"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textPaidAmount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Paid: —"
+                android:textColor="#38845E"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/textUnpaidAmount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Outstanding: —"
+                android:textColor="#B3261E"
+                android:textSize="17sp" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textMonthlyStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Loading your monthly summary..."
+            android:textColor="#746985"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/textMonthlyError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="#B3261E"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</ScrollView>
