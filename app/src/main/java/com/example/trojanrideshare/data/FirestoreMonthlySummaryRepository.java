@@ -28,6 +28,7 @@ public class FirestoreMonthlySummaryRepository {
         }
 
         db.collection(Constants.COLLECTION_RIDES)
+                .whereArrayContains("participantIds", userId)
                 .get()
                 .addOnSuccessListener(snapshot -> {
                     List<Ride> rides = new ArrayList<>();

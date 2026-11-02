@@ -33,6 +33,8 @@ public class Ride {
     private String note;
     private String organizerId;
     private List<Participant> participants = new ArrayList<>();
+    // Participant IDs used for Firestore queries.
+    private List<String> participantIds = new ArrayList<>();
     private ActivityStatus activityStatus;
     private CapacityStatus capacityStatus;
 
@@ -65,6 +67,7 @@ public class Ride {
 
         ride.participants.add(
                 new Participant(organizerId, organizerName, createdAt));
+        ride.syncParticipantIds();
 
         ride.activityStatus = ActivityStatus.ON_TIME;
         ride.syncCapacityStatus();
@@ -187,6 +190,34 @@ public class Ride {
 
     public void setParticipants(List<Participant> participants) {
         this.participants = participants;
+        syncParticipantIds();
+    }
+
+    // Keep the searchable participant IDs synchronized.
+    public void syncParticipantIds() {
+        participantIds = new ArrayList<>();
+
+        if (participants == null) {
+            return;
+        }
+
+        for (Participant participant : participants) {
+            if (participant != null
+                    && participant.getUserId() != null
+                    && !participant.getUserId().trim().isEmpty()
+                    && !participantIds.contains(participant.getUserId())) {
+
+                participantIds.add(participant.getUserId());
+            }
+        }
+    }
+
+    public List<String> getParticipantIds() {
+        return participantIds;
+    }
+
+    public void setParticipantIds(List<String> participantIds) {
+        this.participantIds = participantIds;
     }
 
     public ActivityStatus getActivityStatus() {
