@@ -53,7 +53,7 @@ public class PaymentTrackingFragment extends Fragment {
         errorText = view.findViewById(R.id.textPaymentError);
         paymentsContainer = view.findViewById(R.id.containerPayments);
 
-        // Open the Monthly Summary screen.
+        // Open Monthly Summary without changing the current ride.
         Button monthlySummaryButton =
                 view.findViewById(R.id.buttonMonthlySummary);
 
@@ -74,15 +74,15 @@ public class PaymentTrackingFragment extends Fragment {
                 ? null : args.getString(Constants.ARG_RIDE_ID);
 
         if (rideId == null || rideId.trim().isEmpty()) {
-            showError("No ride was selected.");
             summaryText.setText("No payment details available.");
+            showError("No ride was selected.");
             return;
         }
 
         loadPayments();
     }
 
-    // Read the completed ride and its payment records.
+    // Read the latest payment information from Firestore.
     private void loadPayments() {
         if (saving) return;
 
@@ -112,13 +112,15 @@ public class PaymentTrackingFragment extends Fragment {
             @Override
             public void onError(Exception error) {
                 if (getView() != screen) return;
+
+                summaryText.setText("Could not load payments.");
                 showError("Could not load payments: "
                         + error.getMessage());
             }
         });
     }
 
-    // Display each rider's share and payment status.
+    // Display each participant's cost share and payment state.
     private void renderPayments(Ride ride) {
         paymentsContainer.removeAllViews();
         hideError();
@@ -127,7 +129,8 @@ public class PaymentTrackingFragment extends Fragment {
 
         if (ride.getParticipants() != null) {
             for (Participant participant : ride.getParticipants()) {
-                if (participant != null && participant.getUserId() != null) {
+                if (participant != null
+                        && participant.getUserId() != null) {
                     names.put(participant.getUserId(),
                             participant.getDisplayName());
                 }
@@ -172,7 +175,7 @@ public class PaymentTrackingFragment extends Fragment {
                         + "\nOutstanding: " + dollars(outstanding));
     }
 
-    // Create one payment row per participant.
+    // Create each rider's payment row and authorized buttons.
     private void addPaymentRow(
             Ride ride,
             String riderId,
@@ -198,6 +201,9 @@ public class PaymentTrackingFragment extends Fragment {
         if (share.isPaid()) {
             statusText.setText("Paid");
             statusText.setTextColor(0xFF38845E);
+        } else if (share.isFlagged()) {
+            statusText.setText("Flagged - payment overdue");
+            statusText.setTextColor(0xFFB3261E);
         } else if (overdue) {
             statusText.setText("Overdue - payment pending");
             statusText.setTextColor(0xFFB3261E);
@@ -209,8 +215,13 @@ public class PaymentTrackingFragment extends Fragment {
         statusText.setPadding(0, 8, 0, 8);
         row.addView(statusText);
 
-        // Only the organizer can record a payment.
-        if (!share.isPaid() && ride.isOrganizer(CurrentUser.id())) {
+        String currentUserId = CurrentUser.id();
+
+        // Each rider can mark only their own share as Paid.
+        if (!share.isPaid()
+                && currentUserId != null
+                && currentUserId.equals(riderId)) {
+
             Button paidButton = new Button(requireContext());
             paidButton.setText("Mark as paid");
 
@@ -225,10 +236,30 @@ public class PaymentTrackingFragment extends Fragment {
             row.addView(paidButton);
         }
 
+        // Only the organizer can flag an overdue, unpaid rider.
+        if (!share.isPaid()
+                && !share.isFlagged()
+                && overdue
+                && ride.isOrganizer(currentUserId)) {
+
+            Button flagButton = new Button(requireContext());
+            flagButton.setText("Flag overdue");
+
+            flagButton.setOnClickListener(v -> {
+                if (saving) return;
+
+                saving = true;
+                flagButton.setEnabled(false);
+                flagPayment(riderId);
+            });
+
+            row.addView(flagButton);
+        }
+
         paymentsContainer.addView(row);
     }
 
-    // Save a payment, then reload the latest ride data.
+    // Save the signed-in rider's payment.
     private void recordPayment(String riderId) {
         View screen = getView();
 
@@ -252,35 +283,65 @@ public class PaymentTrackingFragment extends Fragment {
                         saving = false;
                         showError("Could not record payment: "
                                 + error.getMessage());
-
-                        // Reload to restore the correct button state.
                         reloadAfterError();
                     }
                 });
     }
 
+    // Let the organizer flag an overdue payment.
+    private void flagPayment(String riderId) {
+        View screen = getView();
+
+        costService.flagRider(
+                rideId,
+                CurrentUser.id(),
+                riderId,
+                new Callback<Ride>() {
+                    @Override
+                    public void onSuccess(Ride ride) {
+                        if (getView() != screen) return;
+
+                        saving = false;
+                        loadPayments();
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        if (getView() != screen) return;
+
+                        saving = false;
+                        showError("Could not flag payment: "
+                                + error.getMessage());
+                        reloadAfterError();
+                    }
+                });
+    }
+
+    // Refresh after an error without hiding its explanation.
     private void reloadAfterError() {
         View screen = getView();
+        if (screen == null) return;
+
+        String previousError = errorText.getText().toString();
 
         repository.getById(rideId, new Callback<Ride>() {
             @Override
             public void onSuccess(Ride ride) {
                 if (getView() != screen) return;
+
                 if (ride != null
                         && ride.getActivityStatus() == ActivityStatus.COMPLETED
                         && ride.getCostShares() != null) {
-
-                    String previousError = errorText.getText().toString();
-
                     renderPayments(ride);
-
-                    showError(previousError);
                 }
+
+                showError(previousError);
             }
 
             @Override
             public void onError(Exception error) {
                 if (getView() != screen) return;
+
                 showError("Could not refresh payments: "
                         + error.getMessage());
             }
@@ -288,7 +349,8 @@ public class PaymentTrackingFragment extends Fragment {
     }
 
     private String dollars(long cents) {
-        return String.format(Locale.US, "$%.2f", cents / 100.0);
+        return String.format(
+                Locale.US, "$%d.%02d", cents / 100, cents % 100);
     }
 
     private void showError(String message) {
@@ -303,6 +365,9 @@ public class PaymentTrackingFragment extends Fragment {
     @Override
     public void onDestroyView() {
         saving = false;
+        summaryText = null;
+        errorText = null;
+        paymentsContainer = null;
         super.onDestroyView();
     }
 }
