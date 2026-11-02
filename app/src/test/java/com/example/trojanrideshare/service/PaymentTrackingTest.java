@@ -7,10 +7,12 @@ import com.example.trojanrideshare.model.ActivityStatus;
 import com.example.trojanrideshare.model.CostShare;
 import com.example.trojanrideshare.model.Ride;
 import com.example.trojanrideshare.util.Callback;
+import com.google.firebase.Timestamp;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -29,6 +31,7 @@ public class PaymentTrackingTest {
         ride.setId("ride1");
         ride.setOrganizerId("alice");
         ride.setActivityStatus(ActivityStatus.COMPLETED);
+        ride.setCompletedAt(new Timestamp(new Date(1000L)));
 
         Map<String, CostShare> shares = new LinkedHashMap<>();
         shares.put("alice", new CostShare("alice", 3000));
@@ -39,10 +42,10 @@ public class PaymentTrackingTest {
     }
 
     @Test
-    public void organizerCanMarkRiderPaid() {
+    public void riderCanMarkOwnSharePaid() {
         TestCallback callback = new TestCallback();
 
-        service.markRiderPaid("ride1", "alice", "bob", callback);
+        service.markRiderPaid("ride1", "bob", "bob", callback);
 
         assertTrue(callback.success);
         assertNull(callback.error);
@@ -51,13 +54,36 @@ public class PaymentTrackingTest {
     }
 
     @Test
-    public void nonOrganizerCannotRecordPayment() {
+    public void organizerCanMarkOwnSharePaid() {
         TestCallback callback = new TestCallback();
 
-        service.markRiderPaid("ride1", "bob", "bob", callback);
+        service.markRiderPaid("ride1", "alice", "alice", callback);
 
+        assertTrue(callback.success);
+        assertTrue(ride.getCostShares().get("alice").isPaid());
+        assertFalse(ride.getCostShares().get("bob").isPaid());
+    }
+
+    @Test
+    public void organizerCannotMarkAnotherRiderPaid() {
+        TestCallback callback = new TestCallback();
+
+        service.markRiderPaid("ride1", "alice", "bob", callback);
+
+        assertFalse(callback.success);
         assertNotNull(callback.error);
         assertFalse(ride.getCostShares().get("bob").isPaid());
+    }
+
+    @Test
+    public void riderCannotMarkAnotherRiderPaid() {
+        TestCallback callback = new TestCallback();
+
+        service.markRiderPaid("ride1", "bob", "alice", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
+        assertFalse(ride.getCostShares().get("alice").isPaid());
     }
 
     @Test
@@ -65,8 +91,9 @@ public class PaymentTrackingTest {
         ride.setActivityStatus(ActivityStatus.ON_TIME);
         TestCallback callback = new TestCallback();
 
-        service.markRiderPaid("ride1", "alice", "bob", callback);
+        service.markRiderPaid("ride1", "bob", "bob", callback);
 
+        assertFalse(callback.success);
         assertNotNull(callback.error);
         assertFalse(ride.getCostShares().get("bob").isPaid());
     }
@@ -75,8 +102,9 @@ public class PaymentTrackingTest {
     public void unknownRiderIsRejected() {
         TestCallback callback = new TestCallback();
 
-        service.markRiderPaid("ride1", "alice", "charlie", callback);
+        service.markRiderPaid("ride1", "charlie", "charlie", callback);
 
+        assertFalse(callback.success);
         assertNotNull(callback.error);
     }
 
@@ -85,8 +113,9 @@ public class PaymentTrackingTest {
         ride.getCostShares().get("bob").markPaid();
         TestCallback callback = new TestCallback();
 
-        service.markRiderPaid("ride1", "alice", "bob", callback);
+        service.markRiderPaid("ride1", "bob", "bob", callback);
 
+        assertFalse(callback.success);
         assertNotNull(callback.error);
         assertTrue(ride.getCostShares().get("bob").isPaid());
     }
@@ -96,11 +125,24 @@ public class PaymentTrackingTest {
         ride.getCostShares().get("bob").setFlagged(true);
         TestCallback callback = new TestCallback();
 
-        service.markRiderPaid("ride1", "alice", "bob", callback);
+        service.markRiderPaid("ride1", "bob", "bob", callback);
 
         assertTrue(callback.success);
+        assertNull(callback.error);
         assertTrue(ride.getCostShares().get("bob").isPaid());
         assertFalse(ride.getCostShares().get("bob").isFlagged());
+    }
+
+    @Test
+    public void missingCompletionTimestampIsRejected() {
+        ride.setCompletedAt(null);
+        TestCallback callback = new TestCallback();
+
+        service.markRiderPaid("ride1", "bob", "bob", callback);
+
+        assertFalse(callback.success);
+        assertNotNull(callback.error);
+        assertFalse(ride.getCostShares().get("bob").isPaid());
     }
 
     private static class TestCallback implements Callback<Ride> {
