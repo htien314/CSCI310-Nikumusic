@@ -80,6 +80,26 @@
                 android:textColor="#35244F"
                 android:textSize="17sp" />
 
+            <!-- Number of rides organized by this user. -->
+            <TextView
+                android:id="@+id/textOrganizedCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Rides organized: —"
+                android:textColor="#35244F"
+                android:textSize="17sp" />
+
+            <!-- Number of rides joined by this user. -->
+            <TextView
+                android:id="@+id/textJoinedCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Rides joined: —"
+                android:textColor="#35244F"
+                android:textSize="17sp" />
+
             <TextView
                 android:id="@+id/textTotalCost"
                 android:layout_width="match_parent"
@@ -116,6 +136,7 @@
                 android:text="Outstanding: —"
                 android:textColor="#B3261E"
                 android:textSize="17sp" />
+
         </LinearLayout>
 
         <TextView

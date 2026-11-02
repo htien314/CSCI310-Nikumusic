@@ -12,7 +12,7 @@ import java.util.Map;
 
 public final class MonthlySummaryService {
 
-    // Calculate the user's costs for a selected month.
+    // Calculate the user's completed rides and costs for a month.
     public MonthlySummary calculate(
             List<Ride> rides,
             String userId,
@@ -25,12 +25,17 @@ public final class MonthlySummaryService {
         }
 
         int rideCount = 0;
+        int organizedCount = 0;
+        int joinedCount = 0;
+
         long totalCost = 0;
         long myShare = 0;
         long paid = 0;
         long unpaid = 0;
 
         for (Ride ride : rides) {
+
+            // Only include completed rides with saved cost information.
             if (ride == null
                     || ride.getActivityStatus() != ActivityStatus.COMPLETED
                     || ride.getCompletedAt() == null
@@ -39,6 +44,7 @@ public final class MonthlySummaryService {
                 continue;
             }
 
+            // Use the same Los Angeles display zone as the rest of the app.
             YearMonth rideMonth = YearMonth.from(
                     ride.getCompletedAt().toDate().toInstant()
                             .atZone(Constants.DISPLAY_ZONE));
@@ -50,11 +56,19 @@ public final class MonthlySummaryService {
             Map<String, CostShare> shares = ride.getCostShares();
             CostShare mine = shares.get(userId);
 
+            // Only include rides in which the user participated.
             if (mine == null) {
                 continue;
             }
 
             rideCount++;
+
+            if (ride.isOrganizer(userId)) {
+                organizedCount++;
+            } else {
+                joinedCount++;
+            }
+
             totalCost += ride.getActualCostCents();
             myShare += mine.getAmountCents();
 
@@ -66,7 +80,12 @@ public final class MonthlySummaryService {
         }
 
         return new MonthlySummary(
-                rideCount, totalCost, myShare, paid, unpaid);
+                rideCount,
+                organizedCount,
+                joinedCount,
+                totalCost,
+                myShare,
+                paid,
+                unpaid);
     }
 }
-

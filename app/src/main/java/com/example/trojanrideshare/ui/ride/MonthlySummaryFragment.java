@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment;
 import com.example.trojanrideshare.R;
 import com.example.trojanrideshare.data.FirestoreMonthlySummaryRepository;
 import com.example.trojanrideshare.model.MonthlySummary;
+import com.example.trojanrideshare.model.Ride;
 import com.example.trojanrideshare.service.MonthlySummaryService;
 import com.example.trojanrideshare.util.Callback;
 import com.example.trojanrideshare.util.Constants;
@@ -22,9 +23,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-import com.example.trojanrideshare.model.Ride;
-
 public class MonthlySummaryFragment extends Fragment {
+
+    private static final String KEY_MONTH = "selected_month";
 
     private static final DateTimeFormatter MONTH_FORMAT =
             DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US);
@@ -35,12 +36,16 @@ public class MonthlySummaryFragment extends Fragment {
 
     private TextView monthText;
     private TextView rideCountText;
+    private TextView organizedText;
+    private TextView joinedText;
     private TextView totalCostText;
     private TextView myShareText;
     private TextView paidText;
     private TextView unpaidText;
     private TextView statusText;
     private TextView errorText;
+
+    private int requestVersion;
 
     public MonthlySummaryFragment() {
         super(R.layout.fragment_monthly_summary);
@@ -53,6 +58,8 @@ public class MonthlySummaryFragment extends Fragment {
 
         monthText = view.findViewById(R.id.textSelectedMonth);
         rideCountText = view.findViewById(R.id.textRideCount);
+        organizedText = view.findViewById(R.id.textOrganizedCount);
+        joinedText = view.findViewById(R.id.textJoinedCount);
         totalCostText = view.findViewById(R.id.textTotalCost);
         myShareText = view.findViewById(R.id.textMyShare);
         paidText = view.findViewById(R.id.textPaidAmount);
@@ -67,7 +74,16 @@ public class MonthlySummaryFragment extends Fragment {
                 FirebaseFirestore.getInstance());
         service = new MonthlySummaryService();
 
-        selectedMonth = YearMonth.now(Constants.DISPLAY_ZONE);
+        if (state != null && state.containsKey(KEY_MONTH)) {
+            try {
+                selectedMonth = YearMonth.parse(
+                        state.getString(KEY_MONTH));
+            } catch (Exception exception) {
+                selectedMonth = YearMonth.now(Constants.DISPLAY_ZONE);
+            }
+        } else {
+            selectedMonth = YearMonth.now(Constants.DISPLAY_ZONE);
+        }
 
         previous.setOnClickListener(v -> {
             selectedMonth = selectedMonth.minusMonths(1);
@@ -82,8 +98,10 @@ public class MonthlySummaryFragment extends Fragment {
         loadSummary();
     }
 
-    // Fetch the user's rides and calculate monthly totals.
+    // Fetch rides for the selected month.
     private void loadSummary() {
+        int currentRequest = ++requestVersion;
+
         monthText.setText(selectedMonth.format(MONTH_FORMAT));
         statusText.setText("Loading monthly summary...");
         errorText.setVisibility(View.GONE);
@@ -103,6 +121,7 @@ public class MonthlySummaryFragment extends Fragment {
                     @Override
                     public void onSuccess(List<Ride> rides) {
                         if (getView() != screen
+                                || currentRequest != requestVersion
                                 || !requestedMonth.equals(selectedMonth)) {
                             return;
                         }
@@ -116,6 +135,7 @@ public class MonthlySummaryFragment extends Fragment {
                     @Override
                     public void onError(Exception error) {
                         if (getView() != screen
+                                || currentRequest != requestVersion
                                 || !requestedMonth.equals(selectedMonth)) {
                             return;
                         }
@@ -126,21 +146,32 @@ public class MonthlySummaryFragment extends Fragment {
                 });
     }
 
+    // Display all monthly totals.
     private void showSummary(MonthlySummary summary) {
         rideCountText.setText(
                 "Completed rides: " + summary.getRideCount());
+
+        organizedText.setText(
+                "Rides organized: " + summary.getOrganizedCount());
+
+        joinedText.setText(
+                "Rides joined: " + summary.getJoinedCount());
+
         totalCostText.setText(
                 "Total ride costs: "
                         + dollars(summary.getTotalCostCents()));
+
         myShareText.setText(
                 "My share: " + dollars(summary.getMyShareCents()));
+
         paidText.setText(
                 "Paid: " + dollars(summary.getPaidCents()));
+
         unpaidText.setText(
                 "Outstanding: " + dollars(summary.getUnpaidCents()));
 
         statusText.setText(summary.getRideCount() == 0
-                ? "No completed rides for this month."
+                ? "No activity! Please select another month."
                 : "Your monthly summary is ready!");
     }
 
@@ -151,6 +182,34 @@ public class MonthlySummaryFragment extends Fragment {
     }
 
     private String dollars(long cents) {
-        return String.format(Locale.US, "$%.2f", cents / 100.0);
+        return String.format(
+                Locale.US, "$%.2f", cents / 100.0);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (selectedMonth != null) {
+            outState.putString(KEY_MONTH, selectedMonth.toString());
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        requestVersion++;
+
+        monthText = null;
+        rideCountText = null;
+        organizedText = null;
+        joinedText = null;
+        totalCostText = null;
+        myShareText = null;
+        paidText = null;
+        unpaidText = null;
+        statusText = null;
+        errorText = null;
+
+        super.onDestroyView();
     }
 }
