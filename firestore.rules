@@ -1,7 +1,12 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---------------------------------------
+    // Helpers
+    // ---------------------------------------
 
     function signedIn() {
       return request.auth != null;
@@ -24,10 +29,12 @@ service cloud.firestore {
     }
 
     // ---------------------------------------
-    // Ride rules - preserved from Hailey
+    // Rides
+    // Based on Hailey's earlier ride rules
     // ---------------------------------------
 
     match /rides/{rideId} {
+
       allow read: if signedIn();
 
       allow create: if signedIn()
@@ -43,7 +50,8 @@ service cloud.firestore {
       allow update: if signedIn()
         && resource.data.organizerId == request.auth.uid
         && !(resource.data.activityStatus in ['CANCELLED', 'COMPLETED'])
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
             .hasOnly([
               'activityStatus',
               'delayedDepartureTime',
@@ -66,10 +74,12 @@ service cloud.firestore {
     }
 
     // ---------------------------------------
-    // Join requests - preserved from Hailey
+    // Join Requests
+    // Based on Hailey's earlier rules
     // ---------------------------------------
 
     match /joinRequests/{requestId} {
+
       allow read: if signedIn()
         && (
           resource.data.userId == request.auth.uid
@@ -79,21 +89,22 @@ service cloud.firestore {
           ).data.organizerId == request.auth.uid
         );
 
-      // Membership writes use the authenticated backend.
+      // Membership writes are handled separately.
       allow write: if false;
     }
 
     // ---------------------------------------
-    // Private student profiles - Riya
+    // Private User Profiles
     // ---------------------------------------
 
     match /users/{uid} {
 
+      // Users can access only their own private profile.
       allow get: if isOwner(uid);
       allow list: if false;
 
-      // Registration must create a matching USC ID
-      // reservation and public profile in the same batch.
+      // Registration must create a matching public profile
+      // and reserve the USC ID in the same atomic batch.
       allow create: if isOwner(uid)
         && request.resource.data.uid == uid
         && request.resource.data.uscId is string
@@ -104,34 +115,40 @@ service cloud.firestore {
         && getAfter(
             reservationPath(request.resource.data.uscId)
           ).data.uid == uid
-        && getAfter(publicPath(uid)).data.fullName ==
-            request.resource.data.fullName
-        && getAfter(publicPath(uid)).data.displayName ==
-            request.resource.data.nickname;
+        && getAfter(
+            publicPath(uid)
+          ).data.fullName == request.resource.data.fullName
+        && getAfter(
+            publicPath(uid)
+          ).data.displayName == request.resource.data.nickname;
 
-      // Students may change only their nickname.
+      // Only the nickname may be modified.
+      // It must match the public profile nickname.
       allow update: if isOwner(uid)
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
             .hasOnly(['nickname'])
         && request.resource.data.nickname is string
         && request.resource.data.nickname.size() > 0
         && request.resource.data.nickname.size() <= 100
-        && getAfter(publicPath(uid)).data.displayName ==
-            request.resource.data.nickname;
+        && getAfter(
+            publicPath(uid)
+          ).data.displayName == request.resource.data.nickname;
 
       allow delete: if false;
     }
 
     // ---------------------------------------
-    // Public rider profiles - Riya
+    // Public Profiles and Ride Sharing
     // ---------------------------------------
 
     match /publicProfiles/{uid} {
 
+      // Signed-in users can view public profiles.
       allow get: if signedIn();
       allow list: if false;
 
-      // Public profiles must match the private profile.
+      // Public profile creation during registration.
       allow create: if isOwner(uid)
         && request.resource.data.keys()
             .hasOnly(['displayName', 'fullName'])
@@ -144,36 +161,55 @@ service cloud.firestore {
         && getAfter(userPath(uid)).data.fullName ==
             request.resource.data.fullName;
 
-      // Only the display name may change.
+      // Sharing-only updates must preserve the existing name.
+      // Nickname updates must match the private profile.
       allow update: if isOwner(uid)
-        && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['displayName'])
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['displayName', 'sharedRideIds'])
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() > 0
         && request.resource.data.displayName.size() <= 100
-        && getAfter(userPath(uid)).data.nickname ==
-            request.resource.data.displayName;
+        && request.resource.data.fullName == resource.data.fullName
+        && (
+          !('sharedRideIds' in request.resource.data)
+          ||
+          (
+            request.resource.data.sharedRideIds is list
+            && request.resource.data.sharedRideIds.size() <= 100
+          )
+        )
+        && (
+          request.resource.data.displayName ==
+              resource.data.displayName
+          ||
+          getAfter(userPath(uid)).data.nickname ==
+              request.resource.data.displayName
+        );
 
       allow delete: if false;
     }
 
     // ---------------------------------------
-    // USC ID reservations - Riya
+    // USC ID Reservations
     // ---------------------------------------
 
     match /uscIdReservations/{uscId} {
 
-      // Don't expose student ID reservations.
+      // Reservation documents contain private identifiers.
       allow read: if false;
 
-      // Create-only: an existing USC ID reservation
-      // cannot be overwritten.
+      // A USC ID can only be reserved once.
       allow create: if signedIn()
         && uscId.matches('^[0-9]{10}$')
-        && request.resource.data.keys().hasOnly(['uid'])
-        && request.resource.data.keys().hasAll(['uid'])
+        && request.resource.data.keys()
+            .hasOnly(['uid'])
+        && request.resource.data.keys()
+            .hasAll(['uid'])
         && request.resource.data.uid == request.auth.uid
-        && getAfter(userPath(request.auth.uid)).data.uscId == uscId;
+        && getAfter(
+            userPath(request.auth.uid)
+          ).data.uscId == uscId;
 
       allow update, delete: if false;
     }

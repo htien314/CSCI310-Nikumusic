@@ -1,6 +1,6 @@
 
 package com.example.trojanrideshare.data;
-
+import com.google.firebase.firestore.FieldValue;
 import com.example.trojanrideshare.model.User;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -196,4 +196,32 @@ public class UserRepository {
                 .addOnSuccessListener(onSuccess)
                 .addOnFailureListener(onFailure);
     }
+
+    // Add or remove a ride from this user's public sharing list.
+    public void setRideShared(
+            String uid,
+            String rideId,
+            boolean shared,
+            OnSuccessListener<Void> onSuccess,
+            OnFailureListener onFailure) {
+
+        if (uid == null || uid.isEmpty()
+                || rideId == null || rideId.isEmpty()) {
+            onFailure.onFailure(
+                    new IllegalArgumentException("Missing user or ride ID.")
+            );
+            return;
+        }
+
+        Object update = shared
+                ? FieldValue.arrayUnion(rideId)
+                : FieldValue.arrayRemove(rideId);
+
+        db.collection("publicProfiles")
+                .document(uid)
+                .update("sharedRideIds", update)
+                .addOnSuccessListener(onSuccess)
+                .addOnFailureListener(onFailure);
+    }
+
 }

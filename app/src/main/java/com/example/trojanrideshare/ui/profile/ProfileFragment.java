@@ -4,9 +4,11 @@ package com.example.trojanrideshare.ui.profile;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -22,20 +24,27 @@ import com.example.trojanrideshare.service.AuthService;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ProfileFragment extends Fragment {
 
     private final AuthService authService = new AuthService();
-    private final UserRepository userRepository = new UserRepository();
+    private final UserRepository userRepository =
+            new UserRepository();
     private final HistoryRepository historyRepository =
             new HistoryRepository();
+
+    private final FirebaseFirestore db =
+            FirebaseFirestore.getInstance();
 
     public ProfileFragment() {
         super(R.layout.fragment_profile);
@@ -66,14 +75,17 @@ public class ProfileFragment extends Fragment {
         TextView graduationYear =
                 view.findViewById(R.id.profileGraduationYear);
 
-        EditText nickname =
-                view.findViewById(R.id.profileNickname);
+        TextView message =
+                view.findViewById(R.id.profileMessage);
 
         TextView upcomingRides =
                 view.findViewById(R.id.profileUpcomingRides);
 
-        TextView message =
-                view.findViewById(R.id.profileMessage);
+        EditText nickname =
+                view.findViewById(R.id.profileNickname);
+
+        LinearLayout sharingContainer =
+                view.findViewById(R.id.profileSharingContainer);
 
         Button saveNickname =
                 view.findViewById(R.id.profileSaveNicknameButton);
@@ -90,7 +102,7 @@ public class ProfileFragment extends Fragment {
         Button viewHistory =
                 view.findViewById(R.id.profileViewHistoryButton);
 
-        // Signed-out navigation
+        // Login and registration navigation.
         login.setOnClickListener(v ->
                 Navigation.findNavController(view)
                         .navigate(R.id.loginFragment)
@@ -101,7 +113,7 @@ public class ProfileFragment extends Fragment {
                         .navigate(R.id.registerFragment)
         );
 
-        // Ride History navigation
+        // Open Ride History.
         viewHistory.setOnClickListener(v ->
                 Navigation.findNavController(view)
                         .navigate(R.id.historyFragment)
@@ -119,9 +131,10 @@ public class ProfileFragment extends Fragment {
 
         signedOut.setVisibility(View.GONE);
         signedIn.setVisibility(View.GONE);
+
         showMessage(message, "Loading your profile...");
 
-        // Load the current user's private profile.
+        // Load private account information.
         userRepository.getUser(
                 uid,
                 document -> {
@@ -161,10 +174,12 @@ public class ProfileFragment extends Fragment {
                     signedIn.setVisibility(View.VISIBLE);
                     showMessage(message, "");
 
-                    loadUpcomingRides(
+                    // Load upcoming rides and public sharing options.
+                    loadRidesAndSharing(
                             view,
                             uid,
-                            upcomingRides
+                            upcomingRides,
+                            sharingContainer
                     );
                 },
                 error -> {
@@ -180,11 +195,10 @@ public class ProfileFragment extends Fragment {
                 }
         );
 
-        // Update nickname in private and public profiles.
+        // Save nickname in private and public profiles.
         saveNickname.setOnClickListener(v -> {
 
             if (!isCurrentUser(view, uid)) {
-                showMessage(message, "Please log in again.");
                 return;
             }
 
@@ -212,6 +226,7 @@ public class ProfileFragment extends Fragment {
                         }
 
                         saveNickname.setEnabled(true);
+
                         showMessage(
                                 message,
                                 "Nickname updated successfully!"
@@ -224,6 +239,7 @@ public class ProfileFragment extends Fragment {
                         }
 
                         saveNickname.setEnabled(true);
+
                         showMessage(
                                 message,
                                 "Could not update nickname."
@@ -232,144 +248,333 @@ public class ProfileFragment extends Fragment {
             );
         });
 
-        // Log out.
+        // Logout.
         logout.setOnClickListener(v -> {
 
             authService.logout();
 
             nickname.setText("");
             upcomingRides.setText("");
+            sharingContainer.removeAllViews();
 
             showSignedOut(signedIn, signedOut);
+
             showMessage(message, "You have logged out.");
         });
     }
 
-    // Load upcoming organized and joined rides.
-    private void loadUpcomingRides(
+    // Load user's public sharing preferences and all their rides.
+    private void loadRidesAndSharing(
             View view,
             String uid,
-            TextView upcomingRides) {
+            TextView upcomingRides,
+            LinearLayout sharingContainer) {
 
         upcomingRides.setText("Loading upcoming rides...");
 
-        historyRepository.getMyRides(
-                uid,
-                documents -> {
+        setContainerMessage(
+                sharingContainer,
+                "Loading sharing preferences..."
+        );
+
+        db.collection("publicProfiles")
+                .document(uid)
+                .get()
+                .addOnSuccessListener(publicDoc -> {
 
                     if (!isCurrentUser(view, uid)) {
                         return;
                     }
 
-                    List<DocumentSnapshot> upcoming =
-                            new ArrayList<>();
+                    Set<String> sharedIds = new HashSet<>();
 
-                    for (DocumentSnapshot document : documents) {
+                    if (publicDoc.exists()) {
+                        Object raw = publicDoc.get("sharedRideIds");
 
-                        String status =
-                                document.getString("activityStatus");
-
-                        // Completed and cancelled rides belong in History.
-                        if ("COMPLETED".equals(status)
-                                || "CANCELLED".equals(status)) {
-                            continue;
+                        if (raw instanceof List) {
+                            for (Object item : (List<?>) raw) {
+                                if (item instanceof String) {
+                                    sharedIds.add((String) item);
+                                }
+                            }
                         }
-
-                        Timestamp departure =
-                                getDeparture(document);
-
-                        // Only show rides with future departure times.
-                        if (departure == null
-                                || !departure.toDate().after(new Date())) {
-                            continue;
-                        }
-
-                        upcoming.add(document);
                     }
 
-                    // Sort by soonest departure.
-                    upcoming.sort(
-                            Comparator.comparingLong(
-                                    ride -> getDeparture(ride)
-                                            .toDate()
-                                            .getTime()
+                    historyRepository.getMyRides(
+                            uid,
+                            rides -> {
+
+                                if (!isCurrentUser(view, uid)) {
+                                    return;
+                                }
+
+                                showUpcomingRides(
+                                        rides,
+                                        upcomingRides
+                                );
+
+                                showSharingOptions(
+                                        view,
+                                        uid,
+                                        rides,
+                                        sharedIds,
+                                        sharingContainer
+                                );
+                            },
+                            error -> {
+
+                                if (!isCurrentUser(view, uid)) {
+                                    return;
+                                }
+
+                                upcomingRides.setText(
+                                        "Could not load upcoming rides."
+                                );
+
+                                setContainerMessage(
+                                        sharingContainer,
+                                        "Could not load rides."
+                                );
+                            }
+                    );
+                })
+                .addOnFailureListener(error -> {
+
+                    if (!isCurrentUser(view, uid)) {
+                        return;
+                    }
+
+                    upcomingRides.setText(
+                            "Could not load sharing preferences."
+                    );
+
+                    setContainerMessage(
+                            sharingContainer,
+                            "Could not load sharing preferences."
+                    );
+                });
+    }
+
+    // Display upcoming organized and joined rides.
+    private void showUpcomingRides(
+            List<DocumentSnapshot> rides,
+            TextView upcomingRides) {
+
+        List<DocumentSnapshot> upcoming = new ArrayList<>();
+
+        for (DocumentSnapshot ride : rides) {
+
+            if (isUpcoming(ride)) {
+                upcoming.add(ride);
+            }
+        }
+
+        upcoming.sort(
+                Comparator.comparingLong(
+                        ride -> getDeparture(ride)
+                                .toDate()
+                                .getTime()
+                )
+        );
+
+        if (upcoming.isEmpty()) {
+            upcomingRides.setText("No upcoming rides.");
+            return;
+        }
+
+        StringBuilder text = new StringBuilder();
+
+        DateFormat formatter =
+                DateFormat.getDateTimeInstance(
+                        DateFormat.MEDIUM,
+                        DateFormat.SHORT
+                );
+
+        for (DocumentSnapshot ride : upcoming) {
+
+            text.append(getTitle(ride))
+                    .append("\n")
+                    .append(getAddress(ride, "origin"))
+                    .append(" \u2192 ")
+                    .append(getAddress(ride, "destination"))
+                    .append("\n")
+                    .append(
+                            formatter.format(
+                                    getDeparture(ride).toDate()
                             )
-                    );
+                    )
+                    .append("\n\n");
+        }
 
-                    if (upcoming.isEmpty()) {
-                        upcomingRides.setText("No upcoming rides.");
-                        return;
-                    }
-
-                    StringBuilder text = new StringBuilder();
-
-                    DateFormat formatter =
-                            DateFormat.getDateTimeInstance(
-                                    DateFormat.MEDIUM,
-                                    DateFormat.SHORT
-                            );
-
-                    for (DocumentSnapshot ride : upcoming) {
-
-                        String title = ride.getString("title");
-
-                        if (title == null
-                                || title.trim().isEmpty()) {
-                            title = "Untitled Ride";
-                        }
-
-                        String origin =
-                                getAddress(ride, "origin");
-
-                        String destination =
-                                getAddress(ride, "destination");
-
-                        Timestamp departure =
-                                getDeparture(ride);
-
-                        text.append(title)
-                                .append("\n")
-                                .append(origin)
-                                .append(" \u2192 ")
-                                .append(destination)
-                                .append("\n")
-                                .append(formatter.format(
-                                        departure.toDate()
-                                ))
-                                .append("\n\n");
-                    }
-
-                    upcomingRides.setText(
-                            text.toString().trim()
-                    );
-                },
-                error -> {
-
-                    if (!isCurrentUser(view, uid)) {
-                        return;
-                    }
-
-                    upcomingRides.setText(
-                            "Could not load upcoming rides."
-                    );
-                }
+        upcomingRides.setText(
+                text.toString().trim()
         );
     }
 
-    // Use the delayed departure time if one exists.
+    // Display a sharing checkbox for each eligible ride.
+    private void showSharingOptions(
+            View view,
+            String uid,
+            List<DocumentSnapshot> rides,
+            Set<String> sharedIds,
+            LinearLayout container) {
+
+        container.removeAllViews();
+
+        List<DocumentSnapshot> eligible = new ArrayList<>();
+
+        for (DocumentSnapshot ride : rides) {
+
+            if (isUpcoming(ride)
+                    || "COMPLETED".equals(
+                    ride.getString("activityStatus")
+            )) {
+
+                eligible.add(ride);
+            }
+        }
+
+        eligible.sort(
+                Comparator.comparingLong(
+                        (DocumentSnapshot ride) -> {
+                            Timestamp departure = getDeparture(ride);
+                            return departure == null
+                                    ? 0L
+                                    : departure.toDate().getTime();
+                        }
+                ).reversed()
+        );
+
+        if (eligible.isEmpty()) {
+            setContainerMessage(
+                    container,
+                    "No upcoming or completed rides available to share."
+            );
+            return;
+        }
+
+        for (DocumentSnapshot ride : eligible) {
+
+            final String rideId = ride.getId();
+
+            final boolean upcoming = isUpcoming(ride);
+
+            CheckBox checkbox = new CheckBox(requireContext());
+
+            checkbox.setText(
+                    getTitle(ride)
+                            + "\n"
+                            + (upcoming ? "Upcoming" : "Completed")
+                            + " - Share on public profile"
+            );
+
+            checkbox.setChecked(sharedIds.contains(rideId));
+
+            container.addView(checkbox);
+
+            checkbox.setOnCheckedChangeListener(
+                    (button, checked) -> {
+
+                        if (!isCurrentUser(view, uid)) {
+                            return;
+                        }
+
+                        checkbox.setEnabled(false);
+
+                        userRepository.setRideShared(
+                                uid,
+                                rideId,
+                                checked,
+                                unused -> {
+
+                                    if (!isCurrentUser(view, uid)) {
+                                        return;
+                                    }
+
+                                    checkbox.setEnabled(true);
+
+                                    Toast.makeText(
+                                            requireContext(),
+                                            checked
+                                                    ? "Ride shared on public profile"
+                                                    : "Ride removed from public profile",
+                                            Toast.LENGTH_SHORT
+                                    ).show();
+                                },
+                                error -> {
+
+                                    if (!isCurrentUser(view, uid)) {
+                                        return;
+                                    }
+
+                                    android.util.Log.e(
+                                            "RIDE_SHARING",
+                                            "Failed to save sharing preference",
+                                            error
+                                    );
+
+                                    Toast.makeText(
+                                            requireContext(),
+                                            "Sharing error: " + error.getMessage(),
+                                            Toast.LENGTH_LONG
+                                    ).show();
+
+                                    // Reload from Firestore so the checkbox
+                                    // reflects the actual saved state.
+                                    loadRidesAndSharing(
+                                            view,
+                                            uid,
+                                            view.findViewById(
+                                                    R.id.profileUpcomingRides
+                                            ),
+                                            container
+                                    );
+                                }
+                        );
+                    }
+            );
+        }
+    }
+
+    // Only active rides with future departures count as upcoming.
+    private boolean isUpcoming(DocumentSnapshot ride) {
+
+        String status = ride.getString("activityStatus");
+
+        if (!"ON_TIME".equals(status)
+                && !"DELAYED".equals(status)) {
+            return false;
+        }
+
+        Timestamp departure = getDeparture(ride);
+
+        return departure != null
+                && departure.toDate().after(new Date());
+    }
+
+    // Use delayed departure time when available.
     private Timestamp getDeparture(DocumentSnapshot ride) {
 
         Timestamp delayed =
                 ride.getTimestamp("delayedDepartureTime");
 
-        if (delayed != null) {
-            return delayed;
-        }
-
-        return ride.getTimestamp("departureTime");
+        return delayed != null
+                ? delayed
+                : ride.getTimestamp("departureTime");
     }
 
-    // Read an address from a Firestore location map.
+    private String getTitle(DocumentSnapshot ride) {
+
+        String title = ride.getString("title");
+
+        if (title == null || title.trim().isEmpty()) {
+            return "Untitled Ride";
+        }
+
+        return title;
+    }
+
+    // Read addresses from Firestore location maps.
     private String getAddress(
             DocumentSnapshot ride,
             String fieldName) {
@@ -378,9 +583,8 @@ public class ProfileFragment extends Fragment {
 
         if (value instanceof Map) {
 
-            Map<?, ?> location = (Map<?, ?>) value;
-
-            Object address = location.get("address");
+            Object address =
+                    ((Map<?, ?>) value).get("address");
 
             if (address instanceof String) {
                 return (String) address;
@@ -390,10 +594,18 @@ public class ProfileFragment extends Fragment {
         return "Unknown location";
     }
 
-    // Ensure asynchronous results belong to this screen/user.
-    private boolean isCurrentUser(
-            View view,
-            String uid) {
+    private void setContainerMessage(
+            LinearLayout container,
+            String text) {
+
+        container.removeAllViews();
+
+        TextView message = new TextView(requireContext());
+        message.setText(text);
+        container.addView(message);
+    }
+
+    private boolean isCurrentUser(View view, String uid) {
 
         if (!isAdded() || getView() != view) {
             return false;
@@ -419,6 +631,7 @@ public class ProfileFragment extends Fragment {
             String text) {
 
         message.setText(text);
+
         message.setVisibility(
                 text == null || text.isEmpty()
                         ? View.GONE
