@@ -13,6 +13,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.trojanrideshare.R;
 import com.example.trojanrideshare.model.ActivityStatus;
@@ -46,6 +47,33 @@ public class RideDetailsFragment extends Fragment {
     private Button delayButton;
     private Button onTimeButton;
     private Button cancelButton;
+    private Button completeRideButton; // Added for ride completion
+    private Button viewPaymentsButton; // Added for payment tracking
+
+    // Refresh completion availability when the departure time passes.
+    private final android.os.Handler completionHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+
+    private final Runnable refreshCompletionButton = new Runnable() {
+        @Override
+        public void run() {
+            if (viewModel != null && viewModel.getRide().getValue() != null
+                    && completeRideButton != null) {
+                Ride ride = viewModel.getRide().getValue();
+
+                boolean canComplete = ride.isOrganizer(CurrentUser.id())
+                        && !ride.isFinished()
+                        && ride.getCurrentDepartureTime() != null
+                        && ride.getCurrentDepartureTime().toDate().getTime()
+                        <= System.currentTimeMillis();
+
+                completeRideButton.setVisibility(
+                        canComplete ? View.VISIBLE : View.GONE);
+            }
+
+            completionHandler.postDelayed(this, 1000);
+        }
+    };
 
     public RideDetailsFragment() {
         super(R.layout.fragment_ride_details);
@@ -70,6 +98,44 @@ public class RideDetailsFragment extends Fragment {
             args.putString(Constants.ARG_RIDE_ID, ride.getId());
             androidx.navigation.fragment.NavHostFragment.findNavController(this)
                     .navigate(R.id.rideParticipantsFragment, args);
+        });
+
+        // Added for ride completion
+        completeRideButton = view.findViewById(R.id.complete_ride_button);
+
+        // Added for payment tracking
+        viewPaymentsButton = view.findViewById(R.id.view_payments_button);
+
+        viewPaymentsButton.setOnClickListener(v -> {
+            Ride ride = viewModel.getRide().getValue();
+
+            if (ride == null
+                    || ride.getActivityStatus() != ActivityStatus.COMPLETED) {
+                return;
+            }
+
+            Bundle args = new Bundle();
+            args.putString(Constants.ARG_RIDE_ID, ride.getId());
+
+            NavHostFragment.findNavController(this)
+                    .navigate(R.id.action_global_paymentTracking, args);
+        });
+
+        completeRideButton.setOnClickListener(v -> {
+            Ride ride = viewModel.getRide().getValue();
+            if (ride == null || !ride.isOrganizer(CurrentUser.id())
+                    || ride.isFinished()
+                    || ride.getCurrentDepartureTime() == null
+                    || ride.getCurrentDepartureTime().toDate().getTime()
+                    > System.currentTimeMillis()) {
+                return;
+            }
+
+            Bundle args = new Bundle();
+            args.putString(Constants.ARG_RIDE_ID, ride.getId());
+
+            NavHostFragment.findNavController(this)
+                    .navigate(R.id.action_global_completeRide, args);
         });
 
         delayButton.setOnClickListener(v -> showDelayDatePicker());
@@ -119,6 +185,20 @@ public class RideDetailsFragment extends Fragment {
         boolean canManage = ride.isOrganizer(CurrentUser.id()) && !ride.isFinished();
         boolean delayed = ride.getActivityStatus() == ActivityStatus.DELAYED;
         organizerControls.setVisibility(canManage ? View.VISIBLE : View.GONE);
+
+        // Show payment records after the ride is completed.
+        viewPaymentsButton.setVisibility(
+                ride.getActivityStatus() == ActivityStatus.COMPLETED
+                        ? View.VISIBLE : View.GONE);
+
+        // Added for ride completion
+        boolean departed = ride.getCurrentDepartureTime() != null
+                && ride.getCurrentDepartureTime().toDate().getTime()
+                <= System.currentTimeMillis();
+
+        completeRideButton.setVisibility(
+                canManage && departed ? View.VISIBLE : View.GONE);
+
         delayButton.setText(delayed ? R.string.ride_details_change_delay : R.string.ride_details_mark_delayed);
         onTimeButton.setVisibility(delayed ? View.VISIBLE : View.GONE);
     }
@@ -175,6 +255,7 @@ public class RideDetailsFragment extends Fragment {
         delayButton.setEnabled(enabled);
         onTimeButton.setEnabled(enabled);
         cancelButton.setEnabled(enabled);
+        completeRideButton.setEnabled(enabled); // Added for ride completion
     }
 
     private ZonedDateTime currentDeparture() {
@@ -206,5 +287,26 @@ public class RideDetailsFragment extends Fragment {
                         (dialog, which) -> viewModel.cancelRide(CurrentUser.id()))
                 .setNegativeButton(R.string.ride_details_cancel_keep, null)
                 .show();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        completionHandler.removeCallbacks(refreshCompletionButton);
+        completionHandler.post(refreshCompletionButton);
+    }
+
+    @Override
+    public void onStop() {
+        completionHandler.removeCallbacks(refreshCompletionButton);
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroyView() {
+        completionHandler.removeCallbacks(refreshCompletionButton);
+        completeRideButton = null;
+        viewPaymentsButton = null;
+        super.onDestroyView();
     }
 }

@@ -1,3 +1,4 @@
+
 package com.example.trojanrideshare.model;
 
 import com.google.firebase.Timestamp;
@@ -6,10 +7,11 @@ import com.google.firebase.firestore.Exclude;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * A ride, stored in the {@code rides} collection. Input rules such as the 2-6 rider
- * limit are checked in RideService, not here.
+ * A ride stored in the rides collection.
+ * Input rules such as the 2-6 rider limit belong in RideService.
  */
 public class Ride {
 
@@ -22,9 +24,17 @@ public class Ride {
     private Timestamp delayedDepartureTime;
     private int maxRiders;
     private long expectedCostCents;
+
+    // Final cost and payment information.
+    private Long actualCostCents;
+    private Map<String, CostShare> costShares;
+    private Timestamp completedAt;
+
     private String note;
     private String organizerId;
     private List<Participant> participants = new ArrayList<>();
+    // Participant IDs used for Firestore queries.
+    private List<String> participantIds = new ArrayList<>();
     private ActivityStatus activityStatus;
     private CapacityStatus capacityStatus;
 
@@ -32,11 +42,19 @@ public class Ride {
     public Ride() {
     }
 
-    /** Builds a new ride: On-Time, with the organizer as its first participant (UR-2.4). */
-    public static Ride createNew(String title, Location origin, Location destination,
-                                 Timestamp departureTime, int maxRiders, long expectedCostCents,
-                                 String note, String organizerId, String organizerName,
-                                 Timestamp createdAt) {
+    /** Creates an on-time ride with the organizer as its first participant. */
+    public static Ride createNew(
+            String title,
+            Location origin,
+            Location destination,
+            Timestamp departureTime,
+            int maxRiders,
+            long expectedCostCents,
+            String note,
+            String organizerId,
+            String organizerName,
+            Timestamp createdAt) {
+
         Ride ride = new Ride();
         ride.title = title;
         ride.origin = origin;
@@ -46,9 +64,14 @@ public class Ride {
         ride.expectedCostCents = expectedCostCents;
         ride.note = note;
         ride.organizerId = organizerId;
-        ride.participants.add(new Participant(organizerId, organizerName, createdAt));
+
+        ride.participants.add(
+                new Participant(organizerId, organizerName, createdAt));
+        ride.syncParticipantIds();
+
         ride.activityStatus = ActivityStatus.ON_TIME;
         ride.syncCapacityStatus();
+
         return ride;
     }
 
@@ -84,7 +107,7 @@ public class Ride {
         this.destination = destination;
     }
 
-    /** The original departure time. Never changes, and the 3-hour cutoff uses it (UR-2.5, UR-2.7). */
+    /** Original departure time used for cancellation rules. */
     public Timestamp getDepartureTime() {
         return departureTime;
     }
@@ -93,7 +116,7 @@ public class Ride {
         this.departureTime = departureTime;
     }
 
-    /** The new time entered when marking the ride Delayed (UR-2.6), or null if there is none. */
+    /** Updated departure time if the ride is delayed. */
     public Timestamp getDelayedDepartureTime() {
         return delayedDepartureTime;
     }
@@ -118,6 +141,33 @@ public class Ride {
         this.expectedCostCents = expectedCostCents;
     }
 
+    // Final ride cost, recorded after completion.
+    public Long getActualCostCents() {
+        return actualCostCents;
+    }
+
+    public void setActualCostCents(Long actualCostCents) {
+        this.actualCostCents = actualCostCents;
+    }
+
+    // Individual participant shares and payment states.
+    public Map<String, CostShare> getCostShares() {
+        return costShares;
+    }
+
+    public void setCostShares(Map<String, CostShare> costShares) {
+        this.costShares = costShares;
+    }
+
+    // Timestamp used for completion and payment tracking.
+    public Timestamp getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(Timestamp completedAt) {
+        this.completedAt = completedAt;
+    }
+
     public String getNote() {
         return note;
     }
@@ -140,6 +190,34 @@ public class Ride {
 
     public void setParticipants(List<Participant> participants) {
         this.participants = participants;
+        syncParticipantIds();
+    }
+
+    // Keep the searchable participant IDs synchronized.
+    public void syncParticipantIds() {
+        participantIds = new ArrayList<>();
+
+        if (participants == null) {
+            return;
+        }
+
+        for (Participant participant : participants) {
+            if (participant != null
+                    && participant.getUserId() != null
+                    && !participant.getUserId().trim().isEmpty()
+                    && !participantIds.contains(participant.getUserId())) {
+
+                participantIds.add(participant.getUserId());
+            }
+        }
+    }
+
+    public List<String> getParticipantIds() {
+        return participantIds;
+    }
+
+    public void setParticipantIds(List<String> participantIds) {
+        this.participantIds = participantIds;
     }
 
     public ActivityStatus getActivityStatus() {
@@ -158,10 +236,11 @@ public class Ride {
         this.capacityStatus = capacityStatus;
     }
 
-    /** The time for display, search and sorting: the delayed time if there is one, otherwise the original. */
+    /** Uses the delayed time when available. */
     @Exclude
     public Timestamp getCurrentDepartureTime() {
-        return delayedDepartureTime != null ? delayedDepartureTime : departureTime;
+        return delayedDepartureTime != null
+                ? delayedDepartureTime : departureTime;
     }
 
     @Exclude
@@ -174,7 +253,7 @@ public class Ride {
         return organizerId != null && organizerId.equals(userId);
     }
 
-    /** The organizer's name from the participants, or null if they are not listed. */
+    /** Finds the organizer's display name. */
     @Exclude
     public String getOrganizerName() {
         for (Participant participant : participants) {
@@ -185,13 +264,14 @@ public class Ride {
         return null;
     }
 
-    /** Cancelled and Completed rides can't change any more. */
+    /** Cancelled and completed rides cannot be changed as active rides. */
     @Exclude
     public boolean isFinished() {
-        return activityStatus == ActivityStatus.CANCELLED || activityStatus == ActivityStatus.COMPLETED;
+        return activityStatus == ActivityStatus.CANCELLED
+                || activityStatus == ActivityStatus.COMPLETED;
     }
 
-    /** Call after changing the participants or activity status (UR-2.8, UR-2.11). */
+    /** Updates capacity after participant or status changes. */
     public void syncCapacityStatus() {
         if (isFinished()) {
             capacityStatus = CapacityStatus.NOT_APPLICABLE;

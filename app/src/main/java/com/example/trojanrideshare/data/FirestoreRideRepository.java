@@ -37,6 +37,7 @@ public class FirestoreRideRepository implements RideRepository {
     @Override
     public void create(Ride ride, Callback<Ride> callback) {
         DocumentReference ref = rides.document();
+        ride.syncParticipantIds();
         ref.set(ride)
                 .addOnSuccessListener(unused -> {
                     ride.setId(ref.getId());
@@ -68,6 +69,10 @@ public class FirestoreRideRepository implements RideRepository {
                     }
                     Ride ride = snapshot.toObject(Ride.class);
                     mutation.apply(ride);
+
+                    // Keep participant IDs synchronized before saving.
+                    ride.syncParticipantIds();
+
                     transaction.set(ref, ride);
                     return ride;
                 })
