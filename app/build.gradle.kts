@@ -1,3 +1,4 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
@@ -5,6 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.trojanrideshare"
+
     compileSdk {
         version = release(37)
     }
@@ -26,12 +28,15 @@ android {
             }
         }
     }
+
+    // Enable BuildConfig for Firebase emulator configuration.
+    buildFeatures {
+        buildConfig = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    buildFeatures {
-        buildConfig = true
     }
 }
 
@@ -46,6 +51,8 @@ dependencies {
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
     implementation(libs.material)
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
     testImplementation(libs.junit)
     testImplementation(libs.arch.core.testing)
     androidTestImplementation(libs.espresso.core)
