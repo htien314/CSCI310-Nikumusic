@@ -48,3 +48,5 @@ management. See [integration checks and remaining work](docs/ada-riya-integratio
 
 `integration/ada-riya-nikhil` adds Nikhil's search and locations to that foundation.
 See [verification, Firestore checks and remaining requirements](docs/ada-riya-nikhil-integration.md).
+
+Membership is integrated on `integration/full-app`; see docs/hailey-membership.md for the original feature contract.
