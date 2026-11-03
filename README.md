@@ -38,3 +38,8 @@ Android app (Java, XML layouts, Jetpack Navigation, Firebase Auth + Cloud Firest
 | Ride search + locations | Nikhil |
 | Join requests + membership | Hailey |
 | Cost split, payments, monthly summary | Estelle |
+
+## Ada + Riya integration
+
+The `integration/ada-riya` branch combines accounts/profiles with ride creation and
+management. See [integration checks and remaining work](docs/ada-riya-integration.md).

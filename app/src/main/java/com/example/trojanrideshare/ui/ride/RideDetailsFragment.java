@@ -63,6 +63,15 @@ public class RideDetailsFragment extends Fragment {
         onTimeButton = view.findViewById(R.id.on_time_button);
         cancelButton = view.findViewById(R.id.cancel_button);
 
+        view.findViewById(R.id.ride_participants_button).setOnClickListener(v -> {
+            Ride ride = viewModel.getRide().getValue();
+            if (ride == null) return;
+            Bundle args = new Bundle();
+            args.putString(Constants.ARG_RIDE_ID, ride.getId());
+            androidx.navigation.fragment.NavHostFragment.findNavController(this)
+                    .navigate(R.id.rideParticipantsFragment, args);
+        });
+
         delayButton.setOnClickListener(v -> showDelayDatePicker());
         onTimeButton.setOnClickListener(v -> viewModel.markOnTime(CurrentUser.id()));
         cancelButton.setOnClickListener(v -> confirmCancel());

@@ -1,0 +1,4 @@
+<resources>
+    <string name="profile_open_ride_details">View ride details</string>
+    <string name="ride_open_participants">View participant profiles</string>
+</resources>

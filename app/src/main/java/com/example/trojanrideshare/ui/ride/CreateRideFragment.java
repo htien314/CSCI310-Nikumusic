@@ -116,15 +116,17 @@ public class CreateRideFragment extends Fragment {
     }
 
     private void submit() {
-        viewModel.createRide(
+        if (CurrentUser.id() == null) {
+            NavHostFragment.findNavController(this).navigate(R.id.action_global_login);
+            return;
+        }
+        viewModel.createRideAsCurrentUser(
                 titleInput.getText().toString(),
                 originInput.getText().toString(),
                 destinationInput.getText().toString(),
                 (Integer) maxRidersSpinner.getSelectedItem(),
                 costInput.getText().toString(),
-                noteInput.getText().toString(),
-                CurrentUser.id(),
-                CurrentUser.displayName());
+                noteInput.getText().toString());
     }
 
     private void openRide(String rideId) {

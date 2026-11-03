@@ -38,6 +38,12 @@
             <include android:id="@+id/row_riders" layout="@layout/view_ride_detail_row" />
             <include android:id="@+id/row_note" layout="@layout/view_ride_detail_row" />
 
+            <Button
+                android:id="@+id/ride_participants_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ride_open_participants" />
+
             <LinearLayout
                 android:id="@+id/organizer_controls"
                 android:layout_width="match_parent"

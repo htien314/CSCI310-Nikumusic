@@ -10,6 +10,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.viewmodel.CreationExtras;
 
 import com.example.trojanrideshare.data.FirestoreRideRepository;
+import com.example.trojanrideshare.data.FirebaseOrganizerIdentityProvider;
+import com.example.trojanrideshare.data.UserRepository;
+import com.example.trojanrideshare.model.User;
+import com.example.trojanrideshare.service.OrganizerIdentityProvider;
+import com.google.firebase.auth.FirebaseAuth;
 import com.example.trojanrideshare.data.GeocoderLocationGateway;
 import com.example.trojanrideshare.model.Location;
 import com.example.trojanrideshare.model.Ride;
@@ -38,12 +43,14 @@ public class CreateRideViewModel extends ViewModel {
             RideService rideService = new RideService(
                     new FirestoreRideRepository(FirebaseFirestore.getInstance()), new SystemTimeClock());
             Application application = extras.get(ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY);
-            return (T) new CreateRideViewModel(rideService, new GeocoderLocationGateway(application));
+            return (T) new CreateRideViewModel(rideService, new GeocoderLocationGateway(application),
+                    new FirebaseOrganizerIdentityProvider(FirebaseAuth.getInstance(), new UserRepository()));
         }
     };
 
     private final RideService rideService;
     private final LocationGateway locations;
+    private final OrganizerIdentityProvider organizers;
 
     private final MutableLiveData<UiState> state = new MutableLiveData<>(UiState.idle());
     private final MutableLiveData<String> createdRideId = new MutableLiveData<>();
@@ -51,8 +58,14 @@ public class CreateRideViewModel extends ViewModel {
     private final MutableLiveData<LocalTime> time = new MutableLiveData<>();
 
     public CreateRideViewModel(RideService rideService, LocationGateway locations) {
+        this(rideService, locations, null);
+    }
+
+    public CreateRideViewModel(RideService rideService, LocationGateway locations,
+                               OrganizerIdentityProvider organizers) {
         this.rideService = rideService;
         this.locations = locations;
+        this.organizers = organizers;
     }
 
     public LiveData<UiState> getState() {
@@ -87,6 +100,27 @@ public class CreateRideViewModel extends ViewModel {
         if (state.getValue() != null && state.getValue().isError()) {
             state.setValue(UiState.idle());
         }
+    }
+
+    /** Creates a ride with the real UID and the nickname saved in the student's profile. */
+    public void createRideAsCurrentUser(String title, String origin, String destination, int maxRiders,
+                                        String cost, String note) {
+        if (state.getValue() != null && state.getValue().isLoading()) return;
+        if (organizers == null) {
+            showError(new IllegalStateException("Student identity is not configured.")); return;
+        }
+        state.setValue(UiState.loading());
+        organizers.load(new Callback<User>() {
+            @Override public void onSuccess(User user) {
+                if (user == null || user.getUid() == null || user.getUid().isEmpty()
+                        || user.getNickname() == null || user.getNickname().trim().isEmpty()) {
+                    showError(new IllegalStateException("Your student profile is incomplete.")); return;
+                }
+                state.setValue(UiState.idle());
+                createRide(title, origin, destination, maxRiders, cost, note, user.getUid(), user.getNickname());
+            }
+            @Override public void onError(Exception e) { showError(e); }
+        });
     }
 
     public void createRide(String title, String originQuery, String destinationQuery, int maxRiders,

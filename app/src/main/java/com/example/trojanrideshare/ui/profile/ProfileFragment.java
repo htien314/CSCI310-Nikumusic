@@ -263,6 +263,16 @@ public class ProfileFragment extends Fragment {
         });
     }
 
+    @Override public void onResume() {
+        super.onResume();
+        View view = getView();
+        FirebaseUser user = authService.getCurrentUser();
+        if (view != null && user != null) {
+            loadRidesAndSharing(view, user.getUid(), view.findViewById(R.id.profileUpcomingRides),
+                    view.findViewById(R.id.profileSharingContainer));
+        }
+    }
+
     // Load user's public sharing preferences and all their rides.
     private void loadRidesAndSharing(
             View view,
@@ -471,6 +481,15 @@ public class ProfileFragment extends Fragment {
             checkbox.setChecked(sharedIds.contains(rideId));
 
             container.addView(checkbox);
+            Button details = new Button(requireContext());
+            details.setText(R.string.profile_open_ride_details);
+            details.setOnClickListener(v -> {
+                if (!isCurrentUser(view, uid)) return;
+                Bundle args = new Bundle();
+                args.putString("rideId", rideId);
+                Navigation.findNavController(view).navigate(R.id.action_global_rideDetails, args);
+            });
+            container.addView(details);
 
             checkbox.setOnCheckedChangeListener(
                     (button, checked) -> {
