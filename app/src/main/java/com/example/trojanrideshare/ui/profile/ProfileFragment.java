@@ -56,7 +56,10 @@ public class ProfileFragment extends Fragment {
             @Nullable Bundle savedInstanceState) {
 
         super.onViewCreated(view, savedInstanceState);
+    }
 
+    /** Rebind the current account whenever this tab is restored from navigation. */
+    private void renderAccount(View view) {
         LinearLayout signedIn =
                 view.findViewById(R.id.profileSignedIn);
 
@@ -119,7 +122,18 @@ public class ProfileFragment extends Fragment {
                         .navigate(R.id.historyFragment)
         );
 
+        // Log out must not depend on a successful profile/database response.
+        logout.setOnClickListener(v -> {
+            authService.logout();
+            fullName.setText(""); email.setText(""); uscId.setText(""); graduationYear.setText("");
+            nickname.setText(""); upcomingRides.setText(""); sharingContainer.removeAllViews();
+            logout.setVisibility(View.GONE);
+            showSignedOut(signedIn, signedOut);
+            showMessage(message, "You have logged out. You can log in or register another account.");
+        });
+
         FirebaseUser currentUser = authService.getCurrentUser();
+        logout.setVisibility(currentUser == null ? View.GONE : View.VISIBLE);
 
         if (currentUser == null) {
             showSignedOut(signedIn, signedOut);
@@ -248,29 +262,12 @@ public class ProfileFragment extends Fragment {
             );
         });
 
-        // Logout.
-        logout.setOnClickListener(v -> {
-
-            authService.logout();
-
-            nickname.setText("");
-            upcomingRides.setText("");
-            sharingContainer.removeAllViews();
-
-            showSignedOut(signedIn, signedOut);
-
-            showMessage(message, "You have logged out.");
-        });
     }
 
     @Override public void onResume() {
         super.onResume();
         View view = getView();
-        FirebaseUser user = authService.getCurrentUser();
-        if (view != null && user != null) {
-            loadRidesAndSharing(view, user.getUid(), view.findViewById(R.id.profileUpcomingRides),
-                    view.findViewById(R.id.profileSharingContainer));
-        }
+        if (view != null) renderAccount(view);
     }
 
     // Load user's public sharing preferences and all their rides.

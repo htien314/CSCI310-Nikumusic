@@ -28,6 +28,15 @@
             android:accessibilityLiveRegion="polite"
             android:visibility="gone" />
 
+        <!-- Session controls remain reachable even while profile data is loading. -->
+        <Button
+            android:id="@+id/profileLogoutButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/profile_log_out"
+            android:visibility="gone" />
+
         <!-- Signed-in profile -->
         <LinearLayout
             android:id="@+id/profileSignedIn"
@@ -149,13 +158,6 @@
                 android:layout_marginTop="18dp"
                 android:text="View Ride History" />
 
-            <!-- Logout -->
-            <Button
-                android:id="@+id/profileLogoutButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="Log Out" />
 
         </LinearLayout>
 
