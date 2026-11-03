@@ -10,4 +10,47 @@
     <!-- Shared -->
     <string name="retry">Retry</string>
     <string name="placeholder_owner">Coming soon (owner: %1$s)</string>
+
+    <!-- Create ride -->
+    <string name="create_ride_heading">Post a ride</string>
+    <string name="create_ride_title">Title</string>
+    <string name="create_ride_origin">Origin</string>
+    <string name="create_ride_destination">Destination</string>
+    <string name="create_ride_choose_date">Choose date</string>
+    <string name="create_ride_choose_time">Choose time</string>
+    <string name="create_ride_time_zone">Los Angeles time</string>
+    <string name="create_ride_max_riders">Maximum riders (including you)</string>
+    <string name="create_ride_cost">Expected total cost</string>
+    <string name="create_ride_note">Note (optional)</string>
+    <string name="create_ride_submit">Create ride</string>
+
+    <!-- Ride details -->
+    <string name="ride_details_activity">Status</string>
+    <string name="ride_details_capacity">Capacity</string>
+    <string name="ride_details_departure">Departure (Los Angeles time)</string>
+    <string name="ride_details_original_departure">Originally scheduled</string>
+    <string name="ride_details_origin">Origin</string>
+    <string name="ride_details_destination">Destination</string>
+    <string name="ride_details_cost">Expected total cost</string>
+    <string name="ride_details_organizer">Organizer</string>
+    <string name="ride_details_riders">Riders</string>
+    <string name="ride_details_note">Note</string>
+    <string name="ride_details_mark_delayed">Mark as delayed</string>
+    <string name="ride_details_change_delay">Change delayed time</string>
+    <string name="ride_details_mark_on_time">Mark as on time</string>
+    <string name="ride_details_cancel">Cancel ride</string>
+    <string name="ride_details_cancel_title">Cancel this ride?</string>
+    <string name="ride_details_cancel_message">This can\'t be undone.</string>
+    <string name="ride_details_cancel_confirm">Cancel ride</string>
+    <string name="ride_details_cancel_keep">Keep ride</string>
+    <string name="ride_status_on_time">On-Time</string>
+    <string name="ride_status_delayed">Delayed</string>
+    <string name="ride_status_cancelled">Cancelled</string>
+    <string name="ride_status_completed">Completed</string>
+    <string name="ride_capacity_full">Full: %1$d of %2$d riders</string>
+    <string name="ride_capacity_not_applicable">N/A</string>
+    <plurals name="ride_capacity_open">
+        <item quantity="one">Open: %1$d of %2$d riders, %3$d seat left</item>
+        <item quantity="other">Open: %1$d of %2$d riders, %3$d seats left</item>
+    </plurals>
 </resources>

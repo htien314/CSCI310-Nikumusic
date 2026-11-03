@@ -20,11 +20,8 @@
 
     <fragment
         android:id="@+id/createRideFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
-        android:label="Create Ride">
-        <argument android:name="title" app:argType="string" android:defaultValue="Create Ride" />
-        <argument android:name="owner" app:argType="string" android:defaultValue="Ada" />
-    </fragment>
+        android:name="com.example.trojanrideshare.ui.ride.CreateRideFragment"
+        android:label="Create Ride" />
 
     <fragment
         android:id="@+id/myRidesFragment"
@@ -70,10 +67,8 @@
     <!-- Rides (Ada) -->
     <fragment
         android:id="@+id/rideDetailsFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.ride.RideDetailsFragment"
         android:label="Ride Details">
-        <argument android:name="title" app:argType="string" android:defaultValue="Ride Details" />
-        <argument android:name="owner" app:argType="string" android:defaultValue="Ada" />
         <argument android:name="rideId" app:argType="string" app:nullable="true" android:defaultValue="@null" />
     </fragment>
 
