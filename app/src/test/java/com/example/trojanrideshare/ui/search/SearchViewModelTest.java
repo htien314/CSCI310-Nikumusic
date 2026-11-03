@@ -118,6 +118,42 @@ public class SearchViewModelTest {
     // ---- searching ----
 
     @Test
+    public void start_replacesPreviousAccountsResultsAndListener() {
+        addRide("alice", NOW.plusDays(1));
+        addRide("bob", NOW.plusDays(2));
+        viewModel.start("organizer-alice");
+        assertEquals("bob", resultIds().get(0));
+
+        viewModel.start("organizer-bob");
+        assertEquals("alice", resultIds().get(0));
+        assertEquals(1, repository.listeners.size());
+    }
+
+    @Test
+    public void start_retriesAfterSigningInFollowingPermissionDenial() {
+        repository.findActiveError = new SecurityException("signed out");
+        viewModel.start(null);
+        assertTrue(viewModel.getState().getValue().isError());
+
+        repository.findActiveError = null;
+        addRide("ride", NOW.plusDays(1));
+        viewModel.start("me");
+        assertEquals(UiState.Status.SUCCESS, viewModel.getState().getValue().getStatus());
+        assertEquals("ride", resultIds().get(0));
+        assertEquals(1, repository.listeners.size());
+    }
+
+    @Test
+    public void clearingViewModelIgnoresPendingLocationLookup() {
+        ManualGateway gateway = new ManualGateway();
+        viewModel = new SearchViewModel(service, gateway);
+        viewModel.search(USC_VILLAGE, "", null, "lax", "5", 1, "me");
+        viewModel.onCleared();
+        gateway.pending.get(0).onSuccess(LAX);
+        assertTrue(repository.listeners.isEmpty());
+    }
+
+    @Test
     public void search_showsMatchingRides() {
         addRide("ride", NOW.plusDays(1));
         search("usc", "lax", "5");

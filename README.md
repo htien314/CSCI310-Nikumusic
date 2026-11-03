@@ -5,7 +5,7 @@ Android app (Java, XML layouts, Jetpack Navigation, Firebase Auth + Cloud Firest
 ## Setup
 1. Clone the repo and open the folder in Android Studio.
 2. `app/google-services.json` is already in the repo (it connects the app to our Firebase project). Ask Ada for Firebase console access if you don't have it yet.
-3. Places API key (for location search): add `MAPS_API_KEY=your_key` to `local.properties`. That file is git-ignored, so never commit keys.
+3. Location search uses Android's Geocoder and needs no API key. Use a Google APIs or Google Play emulator image; see [location setup](docs/nikhil-search-locations.md). A Places key would only be needed if the team switches adapters later.
 4. Sync Gradle, then run on an emulator (min SDK 26).
 
 ## Project structure (`app/src/main/java/com/example/trojanrideshare`)
@@ -43,3 +43,8 @@ Android app (Java, XML layouts, Jetpack Navigation, Firebase Auth + Cloud Firest
 
 The `integration/ada-riya` branch combines accounts/profiles with ride creation and
 management. See [integration checks and remaining work](docs/ada-riya-integration.md).
+
+## Ada + Riya + Nikhil integration
+
+`integration/ada-riya-nikhil` adds Nikhil's search and locations to that foundation.
+See [verification, Firestore checks and remaining requirements](docs/ada-riya-nikhil-integration.md).

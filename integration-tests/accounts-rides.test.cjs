@@ -92,3 +92,23 @@ test('history query can load the signed-in users own request records',async()=>{
  const results=await assertSucceeds(getDocs(query(collection(db,'joinRequests'),where('userId','==','alice'))));
  assert.equal(results.size,0);
 });
+
+test('search query reads on-time and delayed rides from another organizer',async()=>{
+ const db=await register('alice');
+ await setDoc(doc(db,'rides/on-time'),ride());
+ await setDoc(doc(db,'rides/delayed'),ride());
+ await updateDoc(doc(db,'rides/delayed'),{activityStatus:'DELAYED',delayedDepartureTime:new Date(Date.now()+172800000)});
+ await setDoc(doc(db,'rides/cancelled'),ride());
+ await updateDoc(doc(db,'rides/cancelled'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'});
+ const search=query(collection(dbFor('bob'),'rides'),where('activityStatus','in',['ON_TIME','DELAYED']));
+ const found=await assertSucceeds(getDocs(search));
+ assert.deepEqual(found.docs.map(d=>d.id).sort(),['delayed','on-time']);
+ const delayed=found.docs.find(d=>d.id==='delayed');
+ assert.ok(delayed.get('delayedDepartureTime').toMillis()>delayed.get('departureTime').toMillis());
+});
+
+test('signed-out users cannot run the active-ride search query',async()=>{
+ const db=await register('alice');await setDoc(doc(db,'rides/airport'),ride());
+ const search=query(collection(env.unauthenticatedContext().firestore(),'rides'),where('activityStatus','in',['ON_TIME','DELAYED']));
+ await assertFails(getDocs(search));
+});

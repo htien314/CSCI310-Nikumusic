@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * State for the search screen. Before a search it lists upcoming rides to browse; after a search it
@@ -66,6 +67,8 @@ public class SearchViewModel extends ViewModel {
     // Each browse/search bumps this, so answers from an older request are ignored.
     private int generation;
     private boolean started;
+    @Nullable
+    private String sessionUserId;
 
     public SearchViewModel(SearchService searchService, LocationGateway locations) {
         this.searchService = searchService;
@@ -133,10 +136,11 @@ public class SearchViewModel extends ViewModel {
         }
     }
 
-    /** Starts browsing the first time the screen opens; does nothing after rotation or coming back. */
+    /** Keeps the current search for the same account; restarts after login, logout or account switching. */
     public void start(@Nullable String currentUserId) {
-        if (!started) {
+        if (!started || !Objects.equals(sessionUserId, currentUserId)) {
             started = true;
+            sessionUserId = currentUserId;
             browse(currentUserId);
         }
     }
@@ -182,6 +186,7 @@ public class SearchViewModel extends ViewModel {
 
     @Override
     protected void onCleared() {
+        generation++;
         stopListening();
     }
 

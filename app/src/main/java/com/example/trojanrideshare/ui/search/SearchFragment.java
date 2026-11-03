@@ -136,6 +136,13 @@ public class SearchFragment extends Fragment {
         viewModel.start(currentUserId());
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Bottom-navigation state can survive a trip to Profile to switch accounts.
+        viewModel.start(currentUserId());
+    }
+
     private void setUpSeatsSpinner() {
         List<String> labels = new ArrayList<>();
         labels.add(getString(R.string.search_seats_any));
