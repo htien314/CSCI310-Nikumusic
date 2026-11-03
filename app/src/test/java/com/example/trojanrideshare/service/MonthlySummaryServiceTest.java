@@ -231,6 +231,14 @@ public class MonthlySummaryServiceTest {
         }
     }
 
+    @Test
+    public void rideBelongsToScheduledMonthEvenWhenCostsAreRecordedNextMonth() {
+        Ride ride=completedRide(2026,10,31,6000,2000,false);
+        ride.setCompletedAt(new Timestamp(Date.from(ZonedDateTime.of(2026,11,1,12,0,0,0,Constants.DISPLAY_ZONE).toInstant())));
+        assertEquals(1,service.calculate(Collections.singletonList(ride),"alice",YearMonth.of(2026,10)).getRideCount());
+        assertEquals(0,service.calculate(Collections.singletonList(ride),"alice",YearMonth.of(2026,11)).getRideCount());
+    }
+
     // Build a completed ride with Alice's cost share.
     private Ride completedRide(
             int year, int month, int day,
@@ -244,8 +252,8 @@ public class MonthlySummaryServiceTest {
                 year, month, day, 12, 0, 0, 0,
                 Constants.DISPLAY_ZONE);
 
-        ride.setCompletedAt(
-                new Timestamp(Date.from(completed.toInstant())));
+        ride.setCompletedAt(new Timestamp(Date.from(completed.toInstant())));
+        ride.setDepartureTime(new Timestamp(Date.from(completed.toInstant())));
 
         CostShare share = new CostShare("alice", shareCents);
 

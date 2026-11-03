@@ -128,12 +128,14 @@ public class ProfileFragment extends Fragment {
             fullName.setText(""); email.setText(""); uscId.setText(""); graduationYear.setText("");
             nickname.setText(""); upcomingRides.setText(""); sharingContainer.removeAllViews();
             logout.setVisibility(View.GONE);
+            view.findViewById(R.id.profilePaymentFlags).setVisibility(View.GONE);
             showSignedOut(signedIn, signedOut);
             showMessage(message, "You have logged out. You can log in or register another account.");
         });
 
         FirebaseUser currentUser = authService.getCurrentUser();
         logout.setVisibility(currentUser == null ? View.GONE : View.VISIBLE);
+        view.findViewById(R.id.profilePaymentFlags).setVisibility(currentUser == null ? View.GONE : View.VISIBLE);
 
         if (currentUser == null) {
             showSignedOut(signedIn, signedOut);
@@ -293,6 +295,10 @@ public class ProfileFragment extends Fragment {
                         return;
                     }
 
+                    Object flags=publicDoc.get("overdueRideIds");
+                    int flagCount=flags instanceof List ? ((List<?>)flags).size() : 0;
+                    ((TextView)view.findViewById(R.id.profilePaymentFlags)).setText(flagCount==0
+                            ? "No overdue payment flags." : "Overdue payment flags: " + flagCount);
                     Set<String> sharedIds = new HashSet<>();
 
                     if (publicDoc.exists()) {

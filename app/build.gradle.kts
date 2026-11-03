@@ -17,6 +17,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("boolean", "USE_FIREBASE_EMULATOR", providers.gradleProperty("useFirebaseEmulator").orElse("false").get())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

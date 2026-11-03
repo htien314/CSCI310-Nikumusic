@@ -48,21 +48,17 @@ public class HistoryRideAdapter
         holder.title.setText(ride.getTitle());
         holder.route.setText(ride.getRoute());
 
-        String date = DateFormat.getDateTimeInstance(
-                DateFormat.MEDIUM,
-                DateFormat.SHORT
-        ).format(new Date(ride.getDepartureMillis()));
-
+        String date = java.time.Instant.ofEpochMilli(ride.getDepartureMillis())
+                .atZone(com.example.trojanrideshare.util.Constants.DISPLAY_ZONE)
+                .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a z", Locale.US));
         holder.date.setText("Departure: " + date);
         holder.status.setText("Status: " + ride.getStatus());
-
-        String cost = String.format(
-                Locale.US,
-                "Expected cost: $%.2f",
-                ride.getCostCents() / 100.0
-        );
-
-        holder.cost.setText(cost);
+        holder.cost.setText(ride.getDetails());
+        holder.itemView.setOnClickListener(v -> {
+            android.os.Bundle args = new android.os.Bundle(); args.putString("rideId",ride.getId());
+            androidx.navigation.Navigation.findNavController(v).navigate(
+                    ride.getStatus().equals("Completed") ? R.id.action_global_paymentTracking : R.id.action_global_rideDetails,args);
+        });
     }
 
     @Override

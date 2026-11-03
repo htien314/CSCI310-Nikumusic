@@ -9,9 +9,8 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
 public class TrojanRideshareApp extends Application {
 
-    // Set to true only when testing with local Firebase Emulators.
-    // Keep false when sharing code with teammates.
-    private static final boolean USE_FIREBASE_EMULATOR = false;
+    // Enable only with -PuseFirebaseEmulator=true for local Firebase testing.
+    private static final boolean USE_FIREBASE_EMULATOR = BuildConfig.USE_FIREBASE_EMULATOR;
 
     @Override
     public void onCreate() {
@@ -28,6 +27,8 @@ public class TrojanRideshareApp extends Application {
                     FirebaseFirestore.getInstance();
 
             firestore.useEmulator("10.0.2.2", 8080);
+
+            com.google.firebase.functions.FirebaseFunctions.getInstance("us-central1").useEmulator("10.0.2.2", 5001);
 
             // Disable local persistence during emulator testing.
             FirebaseFirestoreSettings settings =

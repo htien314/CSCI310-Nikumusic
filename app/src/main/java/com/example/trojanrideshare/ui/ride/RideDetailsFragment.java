@@ -138,6 +138,11 @@ public class RideDetailsFragment extends Fragment {
                     .navigate(R.id.action_global_completeRide, args);
         });
 
+        view.findViewById(R.id.ride_membership_button).setOnClickListener(v -> {
+            Ride ride = viewModel.getRide().getValue(); if (ride == null) return;
+            Bundle args = new Bundle(); args.putString(Constants.ARG_RIDE_ID, ride.getId());
+            NavHostFragment.findNavController(this).navigate(R.id.action_global_requestsInbox, args);
+        });
         delayButton.setOnClickListener(v -> showDelayDatePicker());
         onTimeButton.setOnClickListener(v -> viewModel.markOnTime(CurrentUser.id()));
         cancelButton.setOnClickListener(v -> confirmCancel());
@@ -159,6 +164,11 @@ public class RideDetailsFragment extends Fragment {
             actionErrorText.setVisibility(message != null ? View.VISIBLE : View.GONE);
         });
 
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         load();
     }
 

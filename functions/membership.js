@@ -26,11 +26,15 @@ function transition({ride, requests, action, uid, targetId, message = '', displa
     request.status = status; request.updatedAt = now; changed.push(request);
   };
   const requireActive = () => { if (isFinal(ride)) fail('This ride is cancelled or completed.'); };
+  const requireBeforeDeparture = () => {
+    const departure = ride.delayedDepartureTime || ride.departureTime;
+    if (!departure || millis(now) >= millis(departure)) fail('Requests and approvals stop at departure.');
+  };
   const requireOrganizer = () => { if (ride.organizerId !== uid) fail('Only the current organizer can do this.', 'permission-denied'); };
 
   switch (action) {
     case 'request':
-      requireActive();
+      requireActive(); requireBeforeDeparture();
       if (ride.organizerId === uid) fail('You cannot request your own ride.');
       if (member(ride, uid)) fail('You are already participating in this ride.');
       if (ride.participants.length >= ride.maxRiders) fail('This ride is full.');
@@ -50,11 +54,19 @@ function transition({ride, requests, action, uid, targetId, message = '', displa
       requireOrganizer(); requireActive();
       if (!target || target.status !== 'PENDING') fail('This request is no longer pending.');
       if (action === 'reject') { setStatus(target, 'REJECTED'); break; }
+      requireBeforeDeparture();
       if (ride.participants.length >= ride.maxRiders) fail('This ride is already full.');
       if (member(ride, target.userId)) fail('This rider is already participating.');
       // Array append is the definitive acceptance order, including equal timestamps.
       ride.participants.push({userId: target.userId, displayName: target.displayName, acceptedAt: now});
       setStatus(target, 'ACCEPTED');
+      break;
+    case 'cancelRide':
+      requireOrganizer(); requireActive();
+      if (!ride.departureTime || millis(ride.departureTime) - millis(now) < 10800000) {
+        fail('Cancellation requires at least three hours before the original departure.');
+      }
+      ride.activityStatus = 'CANCELLED';
       break;
     case 'leave': {
       requireActive();

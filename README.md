@@ -49,4 +49,9 @@ management. See [integration checks and remaining work](docs/ada-riya-integratio
 `integration/ada-riya-nikhil` adds Nikhil's search and locations to that foundation.
 See [verification, Firestore checks and remaining requirements](docs/ada-riya-nikhil-integration.md).
 
-Membership is integrated on `integration/full-app`; see docs/hailey-membership.md for the original feature contract.
+## Full app integration
+
+`integration/full-app` combines all five teammates’ features and connects ride membership,
+completion, payments, history and profiles. See [full integration results and setup](docs/full-app-integration.md)
+for verification, the required Firebase deployment, and the remaining device demo checklist.
+The earlier integration reports describe their original checkpoints.

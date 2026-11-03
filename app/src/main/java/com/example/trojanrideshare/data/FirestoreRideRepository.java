@@ -80,6 +80,15 @@ public class FirestoreRideRepository implements RideRepository {
                 .addOnFailureListener(callback::onError);
     }
 
+    @Override public void cancel(String rideId, RideMutation validation, Callback<Ride> callback) {
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("action", "cancelRide"); data.put("rideId", rideId);
+        com.google.firebase.functions.FirebaseFunctions.getInstance("us-central1")
+                .getHttpsCallable("membership").call(data)
+                .addOnSuccessListener(result -> getById(rideId, callback))
+                .addOnFailureListener(callback::onError);
+    }
+
     @Override
     public void findActive(Callback<List<Ride>> callback) {
         activeRides().get()

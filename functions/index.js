@@ -13,7 +13,7 @@ exports.membership = onCall({region: 'us-central1'}, async request => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Please log in first.');
   const {action, rideId, targetId, message = ''} = request.data || {};
   const uid = request.auth.uid;
-  if (!validId(rideId) || !['request', 'cancel', 'accept', 'reject', 'leave'].includes(action)) {
+  if (!validId(rideId) || !['request', 'cancel', 'accept', 'reject', 'leave', 'cancelRide'].includes(action)) {
     throw new HttpsError('invalid-argument', 'Choose a ride and a valid action.');
   }
   if (['accept', 'reject'].includes(action) && !validId(targetId)) {
@@ -49,6 +49,7 @@ exports.membership = onCall({region: 'us-central1'}, async request => {
       // Patch only membership-owned fields. Never overwrite route, time, notes or costs.
       transaction.update(rideRef, {
         participants: result.ride.participants,
+        participantIds: result.ride.participants.map(p => p.userId),
         organizerId: result.ride.organizerId,
         activityStatus: result.ride.activityStatus,
         capacityStatus: result.ride.capacityStatus,
@@ -63,5 +64,37 @@ exports.membership = onCall({region: 'us-central1'}, async request => {
     if (error instanceof MembershipError) throw new HttpsError(error.code, error.message);
     console.error('Membership transaction failed', error);
     throw new HttpsError('internal', 'The change could not be saved. Please refresh and try again.');
+  }
+});
+
+const {costTransition} = require('./costs');
+exports.rideCosts = onCall({region:'us-central1'}, async request => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Please log in first.');
+  const {action,rideId,totalCents,customShares,riderId}=request.data || {};
+  if (!validId(rideId) || !['complete','paid','flag'].includes(action)) throw new HttpsError('invalid-argument','Choose a ride and valid action.');
+  try {
+    await db.runTransaction(async tx => {
+      const ref=db.collection('rides').doc(rideId), snapshot=await tx.get(ref);
+      if (!snapshot.exists) throw new MembershipError('not-found','Ride not found.');
+      const patch=costTransition({ride:snapshot.data(),action,uid:request.auth.uid,totalCents,customShares,riderId,now:Timestamp.now()});
+      // Pending requests are closed atomically with completion, just like cancellation.
+      const pending=action==='complete' ? await tx.get(db.collection('joinRequests').where('rideId','==',rideId).where('status','==','PENDING')) : null;
+      let publicRef, overdue;
+      if (action === 'paid' || action === 'flag') {
+        publicRef=db.collection('publicProfiles').doc(riderId);
+        const profile=await tx.get(publicRef);
+        const existing=profile.exists && Array.isArray(profile.get('overdueRideIds')) ? profile.get('overdueRideIds') : [];
+        overdue=existing.filter(id => id !== rideId);
+        if (patch.costShares[riderId].flagged) overdue.push(rideId);
+      }
+      tx.update(ref,patch);
+      if (publicRef) tx.set(publicRef,{overdueRideIds:overdue},{merge:true});
+      if(pending) for(const doc of pending.docs) tx.update(doc.ref,{status:'REJECTED',updatedAt:patch.completedAt});
+    });
+    return {ok:true};
+  } catch(error) {
+    if(error instanceof MembershipError) throw new HttpsError(error.code,error.message);
+    console.error('Cost transaction failed',error);
+    throw new HttpsError('internal','The cost update could not be saved. Please try again.');
   }
 });

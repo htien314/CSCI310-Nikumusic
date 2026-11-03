@@ -92,9 +92,9 @@ public class PublicProfileFragment extends Fragment {
 
                     name.setText(fullName == null ? "" : fullName);
 
-                    paymentStatus.setText(
-                            "Payment status: Not available yet"
-                    );
+                    Object flags=document.get("overdueRideIds");
+                    int count=flags instanceof List ? ((List<?>)flags).size() : 0;
+                    paymentStatus.setText(count==0 ? "No overdue payment flags." : "Overdue payment flags: " + count);
 
                     message.setText("");
 

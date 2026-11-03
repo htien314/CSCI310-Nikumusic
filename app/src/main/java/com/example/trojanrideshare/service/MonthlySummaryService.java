@@ -38,7 +38,7 @@ public final class MonthlySummaryService {
             // Only include completed rides with saved cost information.
             if (ride == null
                     || ride.getActivityStatus() != ActivityStatus.COMPLETED
-                    || ride.getCompletedAt() == null
+                    || ride.getDepartureTime() == null
                     || ride.getActualCostCents() == null
                     || ride.getCostShares() == null) {
                 continue;
@@ -46,7 +46,7 @@ public final class MonthlySummaryService {
 
             // Use the same Los Angeles display zone as the rest of the app.
             YearMonth rideMonth = YearMonth.from(
-                    ride.getCompletedAt().toDate().toInstant()
+                    ride.getDepartureTime().toDate().toInstant()
                             .atZone(Constants.DISPLAY_ZONE));
 
             if (!rideMonth.equals(month)) {

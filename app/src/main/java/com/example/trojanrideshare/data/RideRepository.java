@@ -26,6 +26,11 @@ public interface RideRepository {
     /** Loads the latest ride, applies the change and saves it as one atomic update. */
     void update(String rideId, RideMutation mutation, Callback<Ride> callback);
 
+    /** Production cancellation also closes pending requests in the trusted backend. */
+    default void cancel(String rideId, RideMutation validation, Callback<Ride> callback) {
+        update(rideId, validation, callback);
+    }
+
     /**
      * Loads every ride that is On-Time or Delayed, for ride search (owner: Nikhil).
      * Errors: {@link SecurityException} if the database rules deny the read, {@link java.io.IOException}

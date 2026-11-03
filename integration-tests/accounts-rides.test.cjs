@@ -75,9 +75,10 @@ test('posted route, time, capacity and cost remain fixed',async()=>{
  for(const change of [{title:'Changed'},{departureTime:new Date()},{maxRiders:6},{expectedCostCents:1},{origin:{address:'Elsewhere'}}])
   await assertFails(updateDoc(doc(db,'rides/airport'),change));
 });
-test('cancellation persists and cannot be reversed',async()=>{
+test('direct cancellation and reversal of server cancellation are denied',async()=>{
  const db=await register('alice');await setDoc(doc(db,'rides/airport'),ride());
- await assertSucceeds(updateDoc(doc(db,'rides/airport'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
+ await assertFails(updateDoc(doc(db,'rides/airport'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
+ await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'rides/airport'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
  await assertFails(updateDoc(doc(db,'rides/airport'),{activityStatus:'ON_TIME',capacityStatus:'OPEN'}));
 });
 test('public ride sharing preserves public identity and can be read by another student',async()=>{
@@ -99,7 +100,7 @@ test('search query reads on-time and delayed rides from another organizer',async
  await setDoc(doc(db,'rides/delayed'),ride());
  await updateDoc(doc(db,'rides/delayed'),{activityStatus:'DELAYED',delayedDepartureTime:new Date(Date.now()+172800000)});
  await setDoc(doc(db,'rides/cancelled'),ride());
- await updateDoc(doc(db,'rides/cancelled'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'});
+ await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'rides/cancelled'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
  const search=query(collection(dbFor('bob'),'rides'),where('activityStatus','in',['ON_TIME','DELAYED']));
  const found=await assertSucceeds(getDocs(search));
  assert.deepEqual(found.docs.map(d=>d.id).sort(),['delayed','on-time']);

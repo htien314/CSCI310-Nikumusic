@@ -96,7 +96,7 @@ public class RideService {
 
     /** Cancels the ride if at least 3 hours remain before the original departure time (UR-2.7). */
     public void cancelRide(String rideId, String userId, Callback<Ride> callback) {
-        repository.update(rideId, ride -> {
+        repository.cancel(rideId, ride -> {
             requireOrganizer(ride, userId);
             requireNotFinal(ride);
             if (millis(ride.getDepartureTime()) - clock.nowMillis() < CANCEL_CUTOFF_MILLIS) {

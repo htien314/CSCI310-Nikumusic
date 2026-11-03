@@ -37,6 +37,8 @@
             android:text="@string/profile_log_out"
             android:visibility="gone" />
 
+        <TextView android:id="@+id/profilePaymentFlags" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/profile_payment_flags" android:visibility="gone" />
         <!-- Signed-in profile -->
         <LinearLayout
             android:id="@+id/profileSignedIn"

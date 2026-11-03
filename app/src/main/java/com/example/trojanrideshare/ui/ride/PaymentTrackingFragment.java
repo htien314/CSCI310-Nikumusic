@@ -67,7 +67,8 @@ public class PaymentTrackingFragment extends Fragment {
                 FirebaseFirestore.getInstance());
 
         RideService rideService = new RideService(repository, clock);
-        costService = new CostService(repository, rideService, clock);
+        costService = new CostService(repository, rideService, clock,
+                new com.example.trojanrideshare.data.FirebaseCostGateway(repository));
 
         Bundle args = getArguments();
         rideId = args == null
@@ -79,7 +80,12 @@ public class PaymentTrackingFragment extends Fragment {
             return;
         }
 
-        loadPayments();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (rideId != null && !rideId.trim().isEmpty()) loadPayments();
     }
 
     // Read the latest payment information from Firestore.

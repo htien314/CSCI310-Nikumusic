@@ -26,21 +26,24 @@ public final class CostService {
     private final RideRepository repository;
     private final RideService rideService;
     private final Clock clock;
+    private final CostGateway gateway;
 
     // Keep the original constructor for calculation tests.
     public CostService() {
         repository = null;
         rideService = null;
         clock = null;
+        gateway = null;
     }
 
     // Use this constructor for Firestore operations.
     public CostService(RideRepository repository,
                        RideService rideService,
                        Clock clock) {
-        this.repository = repository;
-        this.rideService = rideService;
-        this.clock = clock;
+        this(repository, rideService, clock, null);
+    }
+    public CostService(RideRepository repository, RideService rideService, Clock clock, CostGateway gateway) {
+        this.repository = repository; this.rideService = rideService; this.clock = clock; this.gateway = gateway;
     }
 
     // Calculate the final shares for an organizer-led completion.
@@ -91,6 +94,8 @@ public final class CostService {
             long totalCents,
             Map<String, Long> customShares,
             Callback<Ride> callback) {
+        if (gateway != null) { gateway.execute("complete", rideId, totalCents, customShares, null, callback); return; }
+
 
         if (repository == null || rideService == null || clock == null) {
             callback.onError(new IllegalStateException(
@@ -162,6 +167,8 @@ public final class CostService {
             String currentUserId,
             String riderId,
             Callback<Ride> callback) {
+        if (gateway != null) { gateway.execute("paid", rideId, 0L, null, riderId, callback); return; }
+
 
         if (repository == null) {
             callback.onError(new IllegalStateException(
@@ -230,6 +237,8 @@ public final class CostService {
             String currentUserId,
             String riderId,
             Callback<Ride> callback) {
+        if (gateway != null) { gateway.execute("flag", rideId, 0L, null, riderId, callback); return; }
+
 
         if (repository == null || clock == null) {
             callback.onError(new IllegalStateException(

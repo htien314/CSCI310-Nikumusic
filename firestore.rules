@@ -57,20 +57,9 @@ service cloud.firestore {
               'delayedDepartureTime',
               'capacityStatus'
             ])
-        && (
-          (
-            request.resource.data.activityStatus == 'CANCELLED'
-            && resource.data.departureTime >=
-                request.time + duration.value(3, 'h')
-            && request.resource.data.capacityStatus == 'NOT_APPLICABLE'
-          )
-          ||
-          (
-            request.resource.data.activityStatus in ['ON_TIME', 'DELAYED']
-            && request.resource.data.capacityStatus ==
-                resource.data.capacityStatus
-          )
-        );
+        && request.resource.data.activityStatus in ['ON_TIME', 'DELAYED']
+        && request.resource.data.capacityStatus == resource.data.capacityStatus;
+
     }
 
     // ---------------------------------------

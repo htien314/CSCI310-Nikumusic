@@ -89,6 +89,7 @@ public final class MembershipFragment extends Fragment {
             showRide(ride); return;
         }
         model.watchInbox(null);
+        button("Monthly summary", () -> NavHostFragment.findNavController(this).navigate(R.id.action_global_monthlySummary));
         heading("Your rides");
         int count = 0;
         for (Ride ride : rides) if (ride.isOrganizer(model.getUserId()) || isMember(ride)) {
@@ -105,13 +106,17 @@ public final class MembershipFragment extends Fragment {
                     () -> model.act("cancel", request.getRideId(), null, null))); count++;
         }
         if (count == 0) text("You have no pending requests.");
-        // This entry point keeps joining usable while Nikhil connects the search results.
+        // A quick entry point complements the full ride search.
         heading("Open rides to request"); count = 0;
-        for (Ride ride : rides) if (!ride.isFinished() && !ride.isOrganizer(model.getUserId())
+        for (Ride ride : rides) if (!ride.isFinished() && beforeDeparture(ride) && !ride.isOrganizer(model.getUserId())
                 && !isMember(ride) && ride.getAvailableSeats() > 0) { rideLink(ride); count++; }
         if (count == 0) text("There are no other open rides right now.");
     }
     private void showRide(Ride ride) {
+        button("Ride details and payments", () -> {
+            Bundle args = new Bundle(); args.putString(Constants.ARG_RIDE_ID, ride.getId());
+            NavHostFragment.findNavController(this).navigate(R.id.action_global_rideDetails, args);
+        });
         heading(ride.getTitle());
         text((ride.getOrigin() == null ? "" : ride.getOrigin().getAddress()) + " → "
                 + (ride.getDestination() == null ? "" : ride.getDestination().getAddress()));
@@ -125,15 +130,17 @@ public final class MembershipFragment extends Fragment {
         if (own != null) text("Your request: " + label(own.getStatus().name()) + " · " + time(own.getCreatedAt()));
         if (isMember(ride) && !ride.isFinished()) {
             text("Leaving is allowed at least three hours before the original departure: " + time(ride.getDepartureTime()));
-            button("Leave ride", () -> confirm(ride.isOrganizer(model.getUserId())
+            if (ride.getDepartureTime() != null && ride.getDepartureTime().toDate().getTime() - System.currentTimeMillis() >= 10800000L) {
+                button("Leave ride", () -> confirm(ride.isOrganizer(model.getUserId())
                     ? "Leave this ride? The most recently accepted remaining rider will become organizer. If nobody remains, the ride will be cancelled."
                     : "Leave this ride?", "Leave ride", () -> model.act("leave", ride.getId(), null, null)));
+            }
         } else if (own != null && own.getStatus() == JoinRequest.Status.PENDING) {
             button("Cancel request", () -> confirm("Cancel this pending request?", "Cancel request",
                     () -> model.act("cancel", ride.getId(), null, null)));
         } else if (own != null && own.getStatus() == JoinRequest.Status.REJECTED) {
             text("Your previous request was rejected. You cannot request this ride again.");
-        } else if (!ride.isFinished() && !ride.isOrganizer(model.getUserId()) && !isMember(ride) && ride.getAvailableSeats() > 0) {
+        } else if (!ride.isFinished() && beforeDeparture(ride) && !ride.isOrganizer(model.getUserId()) && !isMember(ride) && ride.getAvailableSeats() > 0) {
             button("Request to join", () -> requestDialog(ride.getId()));
         }
         if (ride.isOrganizer(model.getUserId())) {
@@ -143,7 +150,7 @@ public final class MembershipFragment extends Fragment {
                 text(request.getDisplayName() + " · " + time(request.getCreatedAt()));
                 if (request.getMessage() != null && !request.getMessage().isEmpty()) text(request.getMessage());
                 if (!ride.isFinished()) {
-                    button("Accept " + request.getDisplayName(), () -> model.act("accept", ride.getId(), request.getId(), null));
+                    if (beforeDeparture(ride)) button("Accept " + request.getDisplayName(), () -> model.act("accept", ride.getId(), request.getId(), null));
                     button("Reject " + request.getDisplayName(), () -> confirm("Reject this request? This rider will not be able to request this ride again.",
                             "Reject request", () -> model.act("reject", ride.getId(), request.getId(), null)));
                 }
@@ -151,6 +158,10 @@ public final class MembershipFragment extends Fragment {
             }
             if (count == 0) text("No pending requests for this ride.");
         } else model.watchInbox(null);
+    }
+    private static boolean beforeDeparture(Ride ride) {
+        return ride.getCurrentDepartureTime() != null
+                && ride.getCurrentDepartureTime().toDate().getTime() > System.currentTimeMillis();
     }
     private void requestDialog(String id) {
         EditText input = new EditText(requireContext());
