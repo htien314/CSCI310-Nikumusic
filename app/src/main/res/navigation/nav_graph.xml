@@ -11,11 +11,8 @@
     <!-- Bottom navigation tabs -->
     <fragment
         android:id="@+id/searchFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
-        android:label="Search Rides">
-        <argument android:name="title" app:argType="string" android:defaultValue="Search Rides" />
-        <argument android:name="owner" app:argType="string" android:defaultValue="Nikhil" />
-    </fragment>
+        android:name="com.example.trojanrideshare.ui.search.SearchFragment"
+        android:label="Search Rides" />
 
     <fragment
         android:id="@+id/rideParticipantsFragment"
