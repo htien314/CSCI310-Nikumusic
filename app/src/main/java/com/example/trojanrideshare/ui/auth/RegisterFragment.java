@@ -88,21 +88,19 @@ public class RegisterFragment extends Fragment {
 
                     // Registration succeeded.
                     user -> {
-                        if (!isAdded() || getView() == null) {
+                        if (!isAdded() || getView() != view) {
                             return;
                         }
 
                         register.setEnabled(true);
                         message.setText("Account created successfully!");
 
-                        Navigation.findNavController(
-                                requireView()
-                        ).navigate(R.id.profileFragment);
+                        AccountNavigation.showProfile(Navigation.findNavController(view));
                     },
 
                     // Registration failed.
                     exception -> {
-                        if (!isAdded() || getView() == null) {
+                        if (!isAdded() || getView() != view) {
                             return;
                         }
 

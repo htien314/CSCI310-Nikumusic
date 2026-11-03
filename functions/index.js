@@ -98,3 +98,30 @@ exports.rideCosts = onCall({region:'us-central1'}, async request => {
     throw new HttpsError('internal','The cost update could not be saved. Please try again.');
   }
 });
+
+// Registration uses a trusted transaction so duplicate IDs have a precise error,
+// while ID reservations remain unreadable to clients.
+exports.registerProfile = onCall({region:'us-central1'}, async request => {
+  if (!request.auth) throw new HttpsError('unauthenticated','Please sign in first.');
+  const {fullName,nickname,uscEmail,uscId,graduationYear}=request.data || {};
+  const name=value=>typeof value==='string' && value.trim().length>0 && value.length<=100;
+  const year=new Date().getUTCFullYear();
+  if (!name(fullName) || !name(nickname) || typeof uscEmail!=='string'
+      || !/^[A-Za-z0-9._%+-]+@usc\.edu$/.test(uscEmail)
+      || uscEmail.toLowerCase() !== String(request.auth.token.email || '').toLowerCase()
+      || typeof uscId!=='string' || !/^\d{10}$/.test(uscId)
+      || !Number.isInteger(graduationYear) || graduationYear<year || graduationYear>year+6) {
+    throw new HttpsError('invalid-argument','Enter a name, USC email, ten-digit USC ID and valid graduation year.');
+  }
+  const uid=request.auth.uid;
+  await db.runTransaction(async tx=>{
+    const userRef=db.doc(`users/${uid}`),reservationRef=db.doc(`uscIdReservations/${uscId}`);
+    const [user,reservation]=await Promise.all([tx.get(userRef),tx.get(reservationRef)]);
+    if (user.exists) throw new HttpsError('already-exists','This account already has a student profile.');
+    if (reservation.exists) throw new HttpsError('already-exists','This USC ID is already registered.');
+    tx.create(userRef,{uid,fullName:fullName.trim(),nickname:nickname.trim(),uscEmail,uscId,graduationYear});
+    tx.create(reservationRef,{uid});
+    tx.create(db.doc(`publicProfiles/${uid}`),{fullName:fullName.trim(),displayName:nickname.trim()});
+  });
+  return {ok:true};
+});

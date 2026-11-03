@@ -10,7 +10,7 @@ if (!enabled) {
   const {getFirestore, Timestamp} = require('firebase-admin/firestore');
   const {initializeTestEnvironment, assertFails, assertSucceeds} = require('@firebase/rules-unit-testing');
   const {doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs} = require('firebase/firestore');
-  const {membership, rideCosts} = require('../index');
+  const {membership, rideCosts, registerProfile} = require('../index');
   const db = getFirestore();
   let env;
   const invoke = (uid, data) => membership.run({auth: uid ? {uid, token:{name:uid}} : null, data});
@@ -99,7 +99,7 @@ if (!enabled) {
   });
   test('rules permit Ada status-only update but protect finished rides and cutoff', async () => {
     const owner=env.authenticatedContext('owner').firestore();
-    await assertSucceeds(updateDoc(doc(owner,'rides/ride'),{activityStatus:'DELAYED'}));
+    await assertSucceeds(updateDoc(doc(owner,'rides/ride'),{activityStatus:'DELAYED',delayedDepartureTime:new Date(Date.now()+172800000)}));
     await assertFails(updateDoc(doc(owner,'rides/ride'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
     await invoke('owner',{action:'cancelRide',rideId:'ride'});
     await assertFails(updateDoc(doc(owner,'rides/ride'),{activityStatus:'ON_TIME',capacityStatus:'OPEN'}));
@@ -163,5 +163,21 @@ if (!enabled) {
     await assert.rejects(submit('bob'),/depart/);
     await assert.rejects(invoke('owner',{action:'accept',rideId:'ride',targetId:a.id}),/depart/);
     assert.equal((await a.ref.get()).get('status'),'PENDING');
+  });
+
+  const register=(uid,data)=>registerProfile.run({auth:{uid,token:{email:`${uid}@usc.edu`}},data:{fullName:'Student',nickname:'Student',uscEmail:`${uid}@usc.edu`,uscId:'8000000001',graduationYear:new Date().getUTCFullYear()+1,...data}});
+  test('trusted registration rejects invalid profiles and forged email without partial records',async()=>{
+    for(const data of [{fullName:' '},{nickname:''},{uscEmail:'other@usc.edu'},{uscEmail:'alice@gmail.com'},{uscId:'123'},{graduationYear:1900}])
+      await assert.rejects(register('alice',data),/valid graduation year/);
+    assert.equal((await db.doc('users/alice').get()).exists,false);
+    assert.equal((await db.doc('uscIdReservations/8000000001').get()).exists,false);
+  });
+  test('concurrent registration reserves a USC ID once without partial profiles',async()=>{
+    const results=await Promise.allSettled([register('alice',{}),register('bob',{})]);
+    assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+    assert.equal((await db.collection('users').get()).size,1);
+    assert.equal((await db.collection('publicProfiles').get()).size,1);
+    assert.equal((await db.collection('uscIdReservations').get()).size,1);
+    assert.match(results.find(r=>r.status==='rejected').reason.message,/USC ID is already registered/);
   });
 }

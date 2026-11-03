@@ -28,6 +28,41 @@ service cloud.firestore {
       return /databases/$(database)/documents/uscIdReservations/$(uscId);
     }
 
+    function validName(value) {
+      return value is string && value.size() > 0 && value.size() <= 100
+        && value.matches('.*[^ \\t\\r\\n].*');
+    }
+
+    function validLocation(place) {
+      return place is map && validName(place.address)
+        && place.latitude is number && place.longitude is number
+        && place.latitude >= -90 && place.latitude <= 90
+        && place.longitude >= -180 && place.longitude <= 180;
+    }
+
+    function validRideTiming(data) {
+      return (data.activityStatus == 'ON_TIME'
+          && data.get('delayedDepartureTime', null) == null
+          && data.departureTime > request.time)
+        || (data.activityStatus == 'DELAYED'
+          && data.delayedDepartureTime is timestamp
+          && data.delayedDepartureTime > data.departureTime
+          && data.delayedDepartureTime > request.time);
+    }
+
+    // A member may share their own participation through their public profile.
+    // Checking the actual participant list prevents strangers publishing private rides.
+    function sharedByMember(data, index, rideId) {
+      return data.participants.size() > index
+        && rideId in get(publicPath(data.participants[index].userId)).data.get('sharedRideIds', []);
+    }
+
+    function publiclyShared(data, rideId) {
+      return sharedByMember(data, 0, rideId) || sharedByMember(data, 1, rideId)
+        || sharedByMember(data, 2, rideId) || sharedByMember(data, 3, rideId)
+        || sharedByMember(data, 4, rideId) || sharedByMember(data, 5, rideId);
+    }
+
     // ---------------------------------------
     // Rides
     // Based on Hailey's earlier ride rules
@@ -35,7 +70,12 @@ service cloud.firestore {
 
     match /rides/{rideId} {
 
-      allow read: if signedIn();
+      allow read: if signedIn() && (
+        resource.data.activityStatus in ['ON_TIME', 'DELAYED']
+        || resource.data.organizerId == request.auth.uid
+        || request.auth.uid in resource.data.get('participantIds', [])
+        || publiclyShared(resource.data, rideId)
+      );
 
       allow create: if signedIn()
         && request.resource.data.organizerId == request.auth.uid
@@ -45,7 +85,19 @@ service cloud.firestore {
         && request.resource.data.maxRiders >= 2
         && request.resource.data.maxRiders <= 6
         && request.resource.data.activityStatus == 'ON_TIME'
-        && request.resource.data.capacityStatus == 'OPEN';
+        && request.resource.data.capacityStatus == 'OPEN'
+        && validName(request.resource.data.title)
+        && validLocation(request.resource.data.origin)
+        && validLocation(request.resource.data.destination)
+        && request.resource.data.departureTime is timestamp
+        && request.resource.data.departureTime > request.time
+        && request.resource.data.get('delayedDepartureTime', null) == null
+        && request.resource.data.expectedCostCents is int
+        && request.resource.data.expectedCostCents > 0
+        && request.resource.data.get('participantIds', [request.auth.uid]) == [request.auth.uid]
+        && request.resource.data.get('actualCostCents', null) == null
+        && request.resource.data.get('completedAt', null) == null
+        && request.resource.data.get('costShares', null) == null;
 
       allow update: if signedIn()
         && resource.data.organizerId == request.auth.uid
@@ -58,7 +110,8 @@ service cloud.firestore {
               'capacityStatus'
             ])
         && request.resource.data.activityStatus in ['ON_TIME', 'DELAYED']
-        && request.resource.data.capacityStatus == resource.data.capacityStatus;
+        && request.resource.data.capacityStatus == resource.data.capacityStatus
+        && validRideTiming(request.resource.data);
 
     }
 
@@ -98,9 +151,13 @@ service cloud.firestore {
         && request.resource.data.uid == uid
         && request.resource.data.uscId is string
         && request.resource.data.uscId.matches('^[0-9]{10}$')
-        && request.resource.data.fullName is string
-        && request.resource.data.nickname is string
+        && validName(request.resource.data.fullName)
+        && validName(request.resource.data.nickname)
         && request.resource.data.uscEmail is string
+        && request.resource.data.uscEmail.matches('^[A-Za-z0-9._%+-]+@usc[.]edu$')
+        && request.resource.data.graduationYear is int
+        && request.resource.data.graduationYear >= request.time.year()
+        && request.resource.data.graduationYear <= request.time.year() + 6
         && getAfter(
             reservationPath(request.resource.data.uscId)
           ).data.uid == uid
@@ -117,9 +174,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data)
             .affectedKeys()
             .hasOnly(['nickname'])
-        && request.resource.data.nickname is string
-        && request.resource.data.nickname.size() > 0
-        && request.resource.data.nickname.size() <= 100
+        && validName(request.resource.data.nickname)
         && getAfter(
             publicPath(uid)
           ).data.displayName == request.resource.data.nickname;

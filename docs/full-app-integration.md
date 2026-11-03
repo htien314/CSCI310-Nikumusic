@@ -18,15 +18,17 @@ Branch: `integration/full-app`, built on `integration/ada-riya-nikhil` (`7a2c7c8
 - Android debug build and lint passed; 218 Java unit tests passed, including history filter/payment display and cross-month summary regressions.
 - Startup smoke check passed on the Pixel 4 / API 33 Android emulator: APK installation preserved the existing sign-in, MainActivity opened My Profile with Log Out visible, and the crash log was empty. The emulator is left running.
 - 36 backend unit tests passed.
-- 14 Firestore/callable integration tests passed, covering concurrent last-seat approvals, duplicate submissions, organizer transfer, cancellation cleanup, joining/completing/paying/flagging, concurrent completion/payment, late requests and direct-write denial.
-- 15 account/profile/search Firestore integration tests passed.
+- 16 Firestore/callable integration tests passed, covering concurrent last-seat approvals, duplicate submissions, organizer transfer, cancellation cleanup, joining/completing/paying/flagging, concurrent completion/payment, late requests and direct-write denial.
+- 19 account/profile/search/privacy Firestore integration tests passed.
+- Three Android device navigation regressions passed, reproducing Profile → Log In → Search → Profile, Profile reselection, and clearing login/signup navigation history.
+- One complete multi-account workflow passed through the real Firebase JavaScript SDK and local Auth, Firestore and Functions HTTP endpoints. It covers signup, duplicate ID errors, search, requests, last-seat rejection, leaving, organizer transfer, completion, flags, paying, sign-out/sign-in persistence, cancellation and share/revoke privacy. The migration dry run and explicit apply path were also checked against local data.
 - The tests use disposable local demo projects and do not alter the shared Firebase database. Deliberate permission-denied logs are expected in permission tests.
 
-Backend tests execute the callable handlers against Firestore, rather than a deployed network endpoint. They do not establish that the shared Firebase deployment is ready or replace a complete multi-account Android demo.
+The network workflow uses local emulator endpoints, not the shared Firebase deployment. Android device navigation is verified separately; the entire multi-account workflow has not yet been exercised through every Android form. The host used Node 24 for local tests; deployment remains configured for Node 22.
 
 ## Required Firebase setup before the full live flow works
 
-Review and deploy the reconciled `firestore.rules`, `firestore.indexes.json`, and both callables (`membership` and `rideCosts`) to the existing shared project, `trojanrideshare-672ad`. The default Android build connects to that project. This integration has not deployed anything, created another project, or changed billing. A project owner must confirm Cloud Functions availability and current deployed rules before deployment.
+Review and deploy the reconciled `firestore.rules`, `firestore.indexes.json`, and all three callables (`membership`, `rideCosts` and `registerProfile`) to the existing shared project, `trojanrideshare-672ad`. The default Android build connects to that project. This integration has not deployed anything, created another project, or changed billing. A project owner must confirm Cloud Functions availability and current deployed rules before deployment.
 
 From a Firebase-authorized owner’s environment after review:
 
@@ -37,9 +39,25 @@ cd ..
 functions/node_modules/.bin/firebase deploy --project trojanrideshare-672ad --only functions:membership,firestore:rules,firestore:indexes
 ```
 
-`functions:membership` selects the codebase named `membership` in `firebase.json`; that codebase exports BOTH callables. Use Node 22 for backend deployment. Do not deploy the new rules separately ahead of the callables: direct ride cancellation now requires the membership backend, and costs require the cost backend.
+`functions:membership` selects the codebase named `membership` in `firebase.json`; that codebase exports all three callables. Use Node 22 for backend deployment. Before enabling the new privacy rules, review the legacy-data migration described below. Do not deploy the new rules separately ahead of the callables: direct ride cancellation now requires the membership backend, costs require the cost backend, and new registration requires `registerProfile`. This new registration dependency is required even if account creation worked on an earlier build.
 
 For local Android development, run Auth, Firestore and Functions emulators for the Android-configured project, then build with `-PuseFirebaseEmulator=true`. Only that explicit build option switches all three SDKs to `10.0.2.2` on ports 9099, 8080 and 5001. The normal build keeps live-project configuration. Android emulator accounts/data are separate from live accounts/data.
+
+## Legacy participant IDs and privacy
+
+Completed/cancelled ride reads now require current membership/organizer ownership or an explicit share by a current participant. Active ride search remains available to signed-in students. The membership hub and history use scoped queries instead of reading the entire collection. Sharing controls publish the ride document to other signed-in students; removing every participant’s share revokes future server reads for nonmembers.
+
+A project owner must backfill missing `participantIds` in older rides BEFORE deploying the new privacy rules, so existing members do not disappear from membership/history queries. Review the dry-run report first, investigate invalid records, then explicitly apply the repair in the authorized project:
+
+```sh
+node functions/scripts/backfill-participant-ids.js --project trojanrideshare-672ad
+# Only after reviewing the dry run:
+node functions/scripts/backfill-participant-ids.js --project trojanrideshare-672ad --apply
+```
+
+The script defaults to read-only, synchronizes only IDs derived from current participants, and rejects stale writes if a ride changes concurrently. No live migration has been run.
+
+See [testing bug-log follow-up](testing-bugs-followup.md) for the status of each issue in the team’s Google Doc.
 
 ## Repeatable checks
 
@@ -47,6 +65,8 @@ For local Android development, run Auth, Firestore and Functions emulators for t
 ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
 node --test functions/test/membership.test.js functions/test/costs.test.js
 cd functions && npm run test:emulator
+# Separately, from functions/, once the previous emulators have stopped:
+npm run test:network
 # From repo root, after the preceding emulator has shut down:
 cd integration-tests && npm test
 ```

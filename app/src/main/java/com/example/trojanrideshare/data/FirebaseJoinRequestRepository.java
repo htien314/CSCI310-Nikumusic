@@ -26,7 +26,12 @@ public final class FirebaseJoinRequestRepository implements JoinRequestRepositor
         })::remove;
     }
     @Override public Subscription observeRides(Callback<List<Ride>> callback) {
-        return observe(db.collection(Constants.COLLECTION_RIDES), Ride.class, callback);
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid == null) { callback.onError(new SecurityException("Please log in.")); return () -> { }; }
+        return observe(db.collection(Constants.COLLECTION_RIDES).where(com.google.firebase.firestore.Filter.or(
+                com.google.firebase.firestore.Filter.inArray("activityStatus", java.util.Arrays.asList("ON_TIME", "DELAYED")),
+                com.google.firebase.firestore.Filter.equalTo("organizerId", uid),
+                com.google.firebase.firestore.Filter.arrayContains("participantIds", uid))), Ride.class, callback);
     }
     @Override public Subscription observeMine(String uid, Callback<List<JoinRequest>> callback) {
         return observe(db.collection(Constants.COLLECTION_JOIN_REQUESTS).whereEqualTo("userId", uid), JoinRequest.class, callback);

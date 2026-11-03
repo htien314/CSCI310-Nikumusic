@@ -1,0 +1,88 @@
+'use strict';
+const {test,after}=require('node:test');
+const assert=require('node:assert/strict');
+const {initializeApp,deleteApp}=require('firebase/app');
+const {getAuth,connectAuthEmulator,createUserWithEmailAndPassword,signOut,signInWithEmailAndPassword}=require('firebase/auth');
+const {getFirestore,connectFirestoreEmulator,doc,setDoc,getDoc,updateDoc,collection,query,where,getDocs}=require('firebase/firestore');
+const {getFunctions,connectFunctionsEmulator,httpsCallable}=require('firebase/functions');
+const projectId='demo-trojan-network';
+if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) throw new Error('Use test:network; local emulators are mandatory.');
+const {initializeApp:adminApp}=require('firebase-admin/app');
+const {getFirestore:adminFirestore,Timestamp}=require('firebase-admin/firestore');
+adminApp({projectId});const admin=adminFirestore();
+const apps=[];
+async function student(label,id) {
+ const app=initializeApp({projectId,apiKey:'fake-local-key',appId:'local-test'},`${label}-${Date.now()}`);apps.push(app);
+ const auth=getAuth(app);connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});
+ const db=getFirestore(app);connectFirestoreEmulator(db,'127.0.0.1',8080);
+ const functions=getFunctions(app,'us-central1');connectFunctionsEmulator(functions,'127.0.0.1',5001);
+ const email=`${label}-${Date.now()}@usc.edu`;
+ const user=(await createUserWithEmailAndPassword(auth,email,'LocalTest123!')).user;
+ const call=(name,data)=>httpsCallable(functions,name)(data);
+ const profile={fullName:label,nickname:label,uscEmail:email,uscId:id,graduationYear:new Date().getUTCFullYear()+1};
+ return {auth,db,user,call,profile,email};
+}
+after(async()=>{await Promise.all(apps.map(deleteApp));});
+test('real SDK authentication and callable endpoints support the cross-account lifecycle',async()=>{
+ const owner=await student('Owner','7000000001'),alice=await student('Alice','7000000002'),bob=await student('Bob','7000000003');
+ for (const s of [owner,alice,bob]) await s.call('registerProfile',s.profile);
+ assert.equal((await getDoc(doc(alice.db,`users/${alice.user.uid}`))).get('nickname'),'Alice');
+ const duplicate=await student('Duplicate','7000000002');
+ await assert.rejects(duplicate.call('registerProfile',duplicate.profile),e=>e.code==='functions/already-exists' && /USC ID is already registered/.test(e.message));
+ assert.equal((await admin.doc(`users/${duplicate.user.uid}`).get()).exists,false);
+ const rideId=`network-${Date.now()}`,rideRef=doc(owner.db,`rides/${rideId}`);
+ const ride={title:'Network test airport ride',origin:{address:'USC',latitude:34.02,longitude:-118.28},destination:{address:'LAX',latitude:33.94,longitude:-118.4},departureTime:new Date(Date.now()+86400000),delayedDepartureTime:null,maxRiders:2,expectedCostCents:1001,note:null,organizerId:owner.user.uid,participants:[{userId:owner.user.uid,displayName:'Owner',acceptedAt:new Date()}],participantIds:[owner.user.uid],activityStatus:'ON_TIME',capacityStatus:'OPEN'};
+ await setDoc(rideRef,ride);
+ const found=await getDocs(query(collection(alice.db,'rides'),where('activityStatus','in',['ON_TIME','DELAYED'])));
+ assert.ok(found.docs.some(d=>d.id===rideId));
+ for(const s of [alice,bob]) await s.call('membership',{action:'request',rideId,message:'Local network test'});
+ const requests=await getDocs(query(collection(owner.db,'joinRequests'),where('rideId','==',rideId)));
+ const request=requests.docs.find(d=>d.get('userId')===alice.user.uid);
+ await owner.call('membership',{action:'accept',rideId,targetId:request.id});
+ const pending=await getDocs(query(collection(bob.db,'joinRequests'),where('userId','==',bob.user.uid)));
+ assert.equal(pending.docs.find(d=>d.get('rideId')===rideId).get('status'),'REJECTED');
+ assert.deepEqual((await getDoc(doc(alice.db,`rides/${rideId}`))).get('participantIds'),[owner.user.uid,alice.user.uid]);
+ await alice.call('membership',{action:'leave',rideId});
+ assert.equal((await getDoc(rideRef)).get('capacityStatus'),'OPEN');
+ // A withdrawn accepted rider may request again. Rejected Bob remains blocked.
+ await alice.call('membership',{action:'request',rideId});
+ await owner.call('membership',{action:'accept',rideId,targetId:request.id});
+ await owner.call('membership',{action:'leave',rideId});
+ assert.equal((await getDoc(doc(alice.db,`rides/${rideId}`))).get('organizerId'),alice.user.uid);
+ await assert.rejects(owner.call('membership',{action:'cancelRide',rideId}),/organizer/);
+ // Time travel is test setup through the emulator Admin SDK, not a client clock override.
+ await admin.doc(`rides/${rideId}`).update({departureTime:Timestamp.fromMillis(Date.now()-1000)});
+ await alice.call('rideCosts',{action:'complete',rideId,totalCents:1001});
+ let completed=await getDoc(doc(alice.db,`rides/${rideId}`));
+ assert.equal(completed.get('activityStatus'),'COMPLETED');
+ assert.equal(completed.get('costShares')[alice.user.uid].amountCents,1001);
+ await admin.doc(`rides/${rideId}`).update({completedAt:Timestamp.fromMillis(Date.now()-8*86400000)});
+ await alice.call('rideCosts',{action:'flag',rideId,riderId:alice.user.uid});
+ assert.deepEqual((await getDoc(doc(owner.db,`publicProfiles/${alice.user.uid}`))).get('overdueRideIds'),[rideId]);
+ await alice.call('rideCosts',{action:'paid',rideId,riderId:alice.user.uid});
+ assert.deepEqual((await getDoc(doc(owner.db,`publicProfiles/${alice.user.uid}`))).get('overdueRideIds'),[]);
+ await signOut(alice.auth);await signInWithEmailAndPassword(alice.auth,alice.email,'LocalTest123!');
+ completed=await getDoc(doc(alice.db,`rides/${rideId}`));
+ assert.equal(completed.get('costShares')[alice.user.uid].paid,true);
+ await assert.rejects(getDoc(doc(bob.db,`rides/${rideId}`)),e=>e.code==='permission-denied');
+ await updateDoc(doc(alice.db,`publicProfiles/${alice.user.uid}`),{sharedRideIds:[rideId]});
+ assert.equal((await getDoc(doc(bob.db,`rides/${rideId}`))).get('activityStatus'),'COMPLETED');
+ await updateDoc(doc(alice.db,`publicProfiles/${alice.user.uid}`),{sharedRideIds:[]});
+ await assert.rejects(getDoc(doc(bob.db,`rides/${rideId}`)),e=>e.code==='permission-denied');
+ await assert.rejects(updateDoc(doc(bob.db,`rides/${rideId}`),{costShares:{}}));
+ // Cancellation on a separate ride closes all pending requests through the endpoint.
+ const cancelId=`${rideId}-cancel`;
+ await setDoc(doc(owner.db,`rides/${cancelId}`),ride);
+ await bob.call('membership',{action:'request',rideId:cancelId});
+ await owner.call('membership',{action:'cancelRide',rideId:cancelId});
+ const afterCancel=await getDocs(query(collection(bob.db,'joinRequests'),where('userId','==',bob.user.uid)));
+ assert.equal(afterCancel.docs.find(d=>d.get('rideId')===cancelId).get('status'),'REJECTED');
+ // Legacy participant IDs are repaired only by explicit migration; dry run writes nothing.
+ await admin.doc(`rides/${rideId}`).update({participantIds:[]});
+ const {execFileSync}=require('node:child_process');
+ const migration=(apply)=>JSON.parse(execFileSync(process.execPath,['functions/scripts/backfill-participant-ids.js','--project',projectId,...(apply?['--apply']:[])],{encoding:'utf8'}));
+ assert.equal(migration(false).required,1);
+ assert.deepEqual((await admin.doc(`rides/${rideId}`).get()).get('participantIds'),[]);
+ assert.equal(migration(true).updated,1);
+ assert.deepEqual((await admin.doc(`rides/${rideId}`).get()).get('participantIds'),[alice.user.uid]);
+});

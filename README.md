@@ -54,4 +54,4 @@ See [verification, Firestore checks and remaining requirements](docs/ada-riya-ni
 `integration/full-app` combines all five teammates’ features and connects ride membership,
 completion, payments, history and profiles. See [full integration results and setup](docs/full-app-integration.md)
 for verification, the required Firebase deployment, and the remaining device demo checklist.
-The earlier integration reports describe their original checkpoints.
+The earlier integration reports describe their original checkpoints. The team’s [testing bug log follow-up](docs/testing-bugs-followup.md) tracks the known issues against this branch.

@@ -113,3 +113,50 @@ test('signed-out users cannot run the active-ride search query',async()=>{
  const search=query(collection(env.unauthenticatedContext().firestore(),'rides'),where('activityStatus','in',['ON_TIME','DELAYED']));
  await assertFails(getDocs(search));
 });
+
+async function invalidRegistration(change) {
+ const db=dbFor('bad'),batch=writeBatch(db);
+ const profile={uid:'bad',fullName:'Student',nickname:'Student',uscEmail:'bad@usc.edu',uscId:'9999999999',graduationYear:new Date().getUTCFullYear()+1,...change};
+ batch.set(doc(db,'users/bad'),profile);
+ batch.set(doc(db,'publicProfiles/bad'),{displayName:profile.nickname,fullName:profile.fullName});
+ batch.set(doc(db,'uscIdReservations/9999999999'),{uid:'bad'});
+ await assertFails(batch.commit());
+}
+test('database rejects invalid student fields even if client validation is bypassed',async()=>{
+ for(const change of [{uscEmail:'bad@gmail.com'},{graduationYear:1900},{graduationYear:new Date().getUTCFullYear()+7},{fullName:''},{fullName:'   '},{fullName:'\t'},{nickname:''}]) await invalidRegistration(change);
+});
+test('database rejects invalid ride cost, endpoints and timing',async()=>{
+ const db=await register('alice');
+ for(const change of [{expectedCostCents:-1},{expectedCostCents:0},{title:' '},{origin:{address:'USC',latitude:100,longitude:0}},{departureTime:new Date(0)},{delayedDepartureTime:new Date(Date.now()+1000)},{costShares:{alice:{amountCents:1}}}])
+  await assertFails(setDoc(doc(db,'rides/invalid'),{...ride(),...change}));
+ await setDoc(doc(db,'rides/valid'),ride());
+ for(const delayedDepartureTime of [null,new Date(0),new Date(Date.now()+1000),'tomorrow'])
+  await assertFails(updateDoc(doc(db,'rides/valid'),{activityStatus:'DELAYED',delayedDepartureTime}));
+});
+
+test('private history is limited to members until a member explicitly shares it',async()=>{
+ const db=await register('alice');
+ await register('bob','2222222222','Bob');
+ await setDoc(doc(db,'rides/history'),{...ride(),participantIds:['alice']});
+ await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'rides/history'),{activityStatus:'COMPLETED',capacityStatus:'NOT_APPLICABLE'}));
+ await assertSucceeds(getDoc(doc(db,'rides/history')));
+ const bob=dbFor('bob');
+ await assertFails(getDoc(doc(bob,'rides/history')));
+ await assertFails(getDocs(collection(bob,'rides')));
+ // A stranger's sharing preference cannot publish somebody else's private history.
+ await updateDoc(doc(bob,'publicProfiles/bob'),{sharedRideIds:['history']});
+ await assertFails(getDoc(doc(bob,'rides/history')));
+ await updateDoc(doc(db,'publicProfiles/alice'),{sharedRideIds:['history']});
+ await assertSucceeds(getDoc(doc(bob,'rides/history')));
+ await updateDoc(doc(db,'publicProfiles/alice'),{sharedRideIds:[]});
+ await assertFails(getDoc(doc(bob,'rides/history')));
+});
+test('privacy permits scoped membership, history and monthly-summary queries',async()=>{
+ const db=await register('alice');
+ await setDoc(doc(db,'rides/airport'),{...ride(),participantIds:['alice']});
+ const {or}=require('firebase/firestore');
+ const membership=query(collection(db,'rides'),or(where('activityStatus','in',['ON_TIME','DELAYED']),where('organizerId','==','alice'),where('participantIds','array-contains','alice')));
+ assert.equal((await assertSucceeds(getDocs(membership))).size,1);
+ await assertSucceeds(getDocs(query(collection(db,'rides'),or(where('organizerId','==','alice'),where('participantIds','array-contains','alice')))));
+ await assertSucceeds(getDocs(query(collection(db,'rides'),where('participantIds','array-contains','alice'),where('activityStatus','==','COMPLETED'))));
+});

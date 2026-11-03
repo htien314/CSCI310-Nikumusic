@@ -117,9 +117,7 @@ public class UserRepository {
         ).addOnFailureListener(onFailure);
     }
 
-    // Register a new student by atomically writing three documents.
-    // Security rules must prevent existing ID reservations from
-    // being overwritten and validate the linked records.
+    // Register a student through the authenticated atomic backend transaction.
     public void registerUser(
             User user,
             OnSuccessListener<Void> onSuccess,
@@ -139,62 +137,21 @@ public class UserRepository {
             return;
         }
 
-        DocumentReference userRef =
-                db.collection("users")
-                        .document(user.getUid());
-
-        DocumentReference idRef =
-                db.collection("uscIdReservations")
-                        .document(user.getUscId());
-
-        DocumentReference publicRef =
-                db.collection("publicProfiles")
-                        .document(user.getUid());
-
-        // Reserve the student's USC ID.
-        Map<String, Object> reservation =
-                new HashMap<>();
-
-        reservation.put(
-                "uid",
-                user.getUid()
-        );
-
-        // Store approved public-facing information.
-        Map<String, Object> publicProfile =
-                new HashMap<>();
-
-        publicProfile.put(
-                "displayName",
-                user.getNickname()
-        );
-
-        publicProfile.put(
-                "fullName",
-                user.getFullName()
-        );
-
-        // All three writes succeed or fail together.
-        WriteBatch batch = db.batch();
-
-        batch.set(
-                idRef,
-                reservation
-        );
-
-        batch.set(
-                userRef,
-                user
-        );
-
-        batch.set(
-                publicRef,
-                publicProfile
-        );
-
-        batch.commit()
-                .addOnSuccessListener(onSuccess)
-                .addOnFailureListener(onFailure);
+        Map<String,Object> data = new HashMap<>();
+        data.put("fullName",user.getFullName()); data.put("nickname",user.getNickname());
+        data.put("uscEmail",user.getUscEmail()); data.put("uscId",user.getUscId());
+        data.put("graduationYear",user.getGraduationYear());
+        com.google.firebase.functions.FirebaseFunctions.getInstance("us-central1")
+                .getHttpsCallable("registerProfile").call(data)
+                .addOnSuccessListener(result -> onSuccess.onSuccess(null))
+                .addOnFailureListener(error -> {
+                    if (error instanceof com.google.firebase.functions.FirebaseFunctionsException) {
+                        // The callable returns precise, user-facing registration errors.
+                        onFailure.onFailure(new IllegalArgumentException(error.getMessage(), error));
+                    } else {
+                        onFailure.onFailure(error);
+                    }
+                });
     }
 
     // Add or remove a ride from this user's public sharing list.

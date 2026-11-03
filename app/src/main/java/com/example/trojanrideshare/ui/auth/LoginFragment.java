@@ -75,8 +75,7 @@ public class LoginFragment extends Fragment {
                         login.setEnabled(true);
                         message.setText("");
 
-                        Navigation.findNavController(view)
-                                .navigate(R.id.profileFragment);
+                        AccountNavigation.showProfile(Navigation.findNavController(view));
                     },
 
                     // Failed login
