@@ -20,7 +20,7 @@ Join request documents are now named `{rideId}_{userId}`, so the rules can tell 
 
 ## What the rules enforce (server time, not the phone's clock)
 
-- Requests: only under your own ID, for an active ride before departure, not your own, not full, not already joined; a rejected request can't be resubmitted; a cancelled one can.
+- Requests: only under your own ID, for an active ride before departure, not your own, not full, not already joined; a rejected request can't be resubmitted; after cancelling or leaving, a rider may ask again.
 - Only the current organizer accepts or rejects. Accepting must append exactly that requester and accept their request in the same write; capacity must become Full/Open correctly.
 - Leaving: only yourself, at least three hours before the original departure. An organizer leaving others behind must hand the ride to the latest-joined rider; a solo organizer leaving cancels it. Cancelling the whole ride also needs three hours.
 - Completion: organizer only, after the current departure, positive actual cost, `completedAt` stamped by the server, one non-negative share per participant adding up exactly to the total.
@@ -30,7 +30,8 @@ Not enforceable in rules, enforced by the app only: auto-rejecting the other pen
 
 ## Checks
 
-- `integration-tests`: 40 rules tests pass (the team's 21, one updated for organizer cancellation, plus 19 for the app-side flows in `client-membership-costs.test.cjs`).
+- `integration-tests`: 41 rules tests pass (the team's 21, one updated for organizer cancellation, plus 20 for the app-side flows in `client-membership-costs.test.cjs`).
+- `npm run test:device --prefix functions`: all 10 Android phases pass with real geocoding (three accounts, last seat, leaving and rejoining, completion, flags, payments, history, monthly summary, cancellation, custom splits, restart, navigation). The script still starts the functions emulator, but the app never calls it.
 - Android unit tests: 240 pass, including `MembershipTransitionTest` and `CostTransitionTest`.
 - `functions/` tests still describe the old callables and are not used by this branch.
 
