@@ -1,0 +1,11 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const {spawnSync}=require('node:child_process');
+const {prepare,repo}=require('./prepare.cjs');
+const build=prepare();
+const snapshot=path.join(repo,'.firebase',`device-demo-${Date.now()}`);
+fs.mkdirSync(path.dirname(snapshot),{recursive:true});
+const firebase=path.join(repo,'functions/node_modules/.bin/firebase');
+const result=spawnSync(firebase,['emulators:exec','--project','demo-trojan-device','--only','auth,firestore,functions','--export-on-exit',snapshot,'node functions/test/device/run.cjs'],{cwd:repo,stdio:'inherit',env:{...process.env,TROJAN_DEVICE_BUILD:build}});
+fs.writeFileSync(path.join(repo,'.firebase/device-verification.json'),JSON.stringify({build,snapshot,passed:result.status===0},null,2));
+process.exitCode=result.status===0?0:1;

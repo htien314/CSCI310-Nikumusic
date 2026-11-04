@@ -1,0 +1,9 @@
+<resources>
+    <string name="full_app_membership">Requests and membership</string>
+    <string name="history_origin_hint">Optional pickup for radius search</string>
+    <string name="history_destination_hint">Optional destination for radius search</string>
+    <string name="history_radius_hint">Radius in miles (default 5)</string>
+    <string name="history_participant_hint">Filter by participant name</string>
+    <string name="history_apply_radius">Apply location filters</string>
+    <string name="profile_payment_flags">Overdue payment flags: loading…</string>
+</resources>

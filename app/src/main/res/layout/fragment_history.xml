@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ride History"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/historySearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Search rides"
+        android:inputType="text"
+        android:singleLine="true" />
+
+    <Spinner
+        android:id="@+id/historyStatusFilter"
+        android:layout_width="match_parent"
+        android:layout_height="48dp" />
+
+    <Spinner
+        android:id="@+id/historySort"
+        android:layout_width="match_parent"
+        android:layout_height="48dp" />
+
+    <Button android:id="@+id/historyMoreFilters" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="More filters" />
+    <ScrollView android:id="@+id/historyAdvancedFilters" android:layout_width="match_parent"
+        android:layout_height="240dp" android:visibility="gone" android:fillViewport="false">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+    <EditText android:id="@+id/historyParticipant" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="@string/history_participant_hint" android:inputType="text" android:singleLine="true" />
+    <com.example.trojanrideshare.ui.common.LocationPickerView android:id="@+id/historyOrigin"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/history_origin_hint" />
+    <com.example.trojanrideshare.ui.common.LocationPickerView android:id="@+id/historyDestination"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/history_destination_hint" />
+    <EditText android:id="@+id/historyRadius" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="@string/history_radius_hint" android:inputType="numberDecimal" android:singleLine="true" />
+    <Button android:id="@+id/historyApply" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/history_apply_radius" />
+        </LinearLayout>
+    </ScrollView>
+    <ProgressBar
+        android:id="@+id/historyLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:id="@+id/historyMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/historyRideList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="12dp" />
+
+</LinearLayout>

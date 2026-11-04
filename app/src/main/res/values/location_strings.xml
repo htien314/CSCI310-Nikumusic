@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings for the shared LocationPickerView (owner: Nikhil). -->
+<resources>
+    <string name="location_find">Find location</string>
+    <string name="location_enter">Enter a location.</string>
+    <string name="location_searching">Searching…</string>
+    <string name="location_choose">Which one did you mean?</string>
+    <string name="location_selected">✓ Location found</string>
+    <string name="location_failed">Couldn\'t find that location.</string>
+</resources>

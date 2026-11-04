@@ -40,5 +40,19 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = navHostFragment.getNavController();
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
         NavigationUI.setupWithNavController(bottomNav, navController);
+        bottomNav.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.profileFragment) {
+                com.example.trojanrideshare.ui.auth.AccountNavigation.showProfile(navController);
+                return true;
+            }
+            return NavigationUI.onNavDestinationSelected(item, navController);
+        });
+        bottomNav.setOnItemReselectedListener(item -> {
+            if (item.getItemId() == R.id.profileFragment) {
+                com.example.trojanrideshare.ui.auth.AccountNavigation.showProfile(navController);
+            } else {
+                navController.popBackStack(item.getItemId(), false);
+            }
+        });
     }
 }

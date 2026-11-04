@@ -5,8 +5,14 @@ Android app (Java, XML layouts, Jetpack Navigation, Firebase Auth + Cloud Firest
 ## Setup
 1. Clone the repo and open the folder in Android Studio.
 2. `app/google-services.json` is already in the repo (it connects the app to our Firebase project). Ask Ada for Firebase console access if you don't have it yet.
-3. Places API key (for location search): add `MAPS_API_KEY=your_key` to `local.properties`. That file is git-ignored, so never commit keys.
+3. Location search uses Android's Geocoder and needs no API key. Use a Google APIs or Google Play emulator image; see [location setup](docs/nikhil-search-locations.md). A Places key would only be needed if the team switches adapters later.
 4. Sync Gradle, then run on an emulator (min SDK 26).
+
+## Full local demo on Spark
+
+The team is keeping the shared Firebase project on Spark for now. For the full integrated workflow without enabling billing, follow [local Android testing and demo setup](docs/local-device-testing.md): run `npm run test:device` in `functions/`, then `npm run demo:local` after it passes. This installs a separate local-test app and keeps your normal app/account intact.
+
+The normal Android build still points at the shared Firebase project and needs the deployed backend for the complete workflow. Local demo users and rides appear in the local emulator dashboard, not the live Firebase console.
 
 ## Project structure (`app/src/main/java/com/example/trojanrideshare`)
 | Package | What goes there |
@@ -38,3 +44,20 @@ Android app (Java, XML layouts, Jetpack Navigation, Firebase Auth + Cloud Firest
 | Ride search + locations | Nikhil |
 | Join requests + membership | Hailey |
 | Cost split, payments, monthly summary | Estelle |
+
+## Ada + Riya integration
+
+The `integration/ada-riya` branch combines accounts/profiles with ride creation and
+management. See [integration checks and remaining work](docs/ada-riya-integration.md).
+
+## Ada + Riya + Nikhil integration
+
+`integration/ada-riya-nikhil` adds Nikhil's search and locations to that foundation.
+See [verification, Firestore checks and remaining requirements](docs/ada-riya-nikhil-integration.md).
+
+## Full app integration
+
+`integration/full-app` combines all five teammates’ features and connects ride membership,
+completion, payments, history and profiles. See [full integration results and setup](docs/full-app-integration.md)
+for verification, the required Firebase deployment, and the remaining device demo checklist.
+The earlier integration reports describe their original checkpoints. The team’s [testing bug log follow-up](docs/testing-bugs-followup.md) tracks the known issues against this branch.

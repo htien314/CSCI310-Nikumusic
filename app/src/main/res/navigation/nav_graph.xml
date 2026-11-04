@@ -7,28 +7,32 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/searchFragment">
-
+    app:startDestination="@id/profileFragment">
     <!-- Bottom navigation tabs -->
     <fragment
         android:id="@+id/searchFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
-        android:label="Search Rides">
-        <argument android:name="title" app:argType="string" android:defaultValue="Search Rides" />
-        <argument android:name="owner" app:argType="string" android:defaultValue="Nikhil" />
+        android:name="com.example.trojanrideshare.ui.search.SearchFragment"
+        android:label="Search Rides" />
+
+    <fragment
+        android:id="@+id/rideParticipantsFragment"
+        android:name="com.example.trojanrideshare.ui.profile.RideParticipantsFragment"
+        android:label="Ride Participants">
+
+        <argument
+            android:name="rideId"
+            app:argType="string" />
+
     </fragment>
 
     <fragment
         android:id="@+id/createRideFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
-        android:label="Create Ride">
-        <argument android:name="title" app:argType="string" android:defaultValue="Create Ride" />
-        <argument android:name="owner" app:argType="string" android:defaultValue="Ada" />
-    </fragment>
+        android:name="com.example.trojanrideshare.ui.ride.CreateRideFragment"
+        android:label="Create Ride" />
 
     <fragment
         android:id="@+id/myRidesFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.membership.MembershipFragment"
         android:label="My Rides &amp; Requests">
         <argument android:name="title" app:argType="string" android:defaultValue="My Rides &amp; Requests" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Hailey" />
@@ -36,16 +40,28 @@
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.profile.ProfileFragment"
         android:label="Profile">
         <argument android:name="title" app:argType="string" android:defaultValue="Profile" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
     </fragment>
 
     <!-- Account (Riya) -->
+
+    <fragment
+        android:id="@+id/publicProfileFragment"
+        android:name="com.example.trojanrideshare.ui.profile.PublicProfileFragment"
+        android:label="Rider Profile">
+
+        <argument
+            android:name="riderUid"
+            app:argType="string"
+            />
+
+    </fragment>
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.auth.LoginFragment"
         android:label="Log In">
         <argument android:name="title" app:argType="string" android:defaultValue="Log In" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
@@ -53,7 +69,7 @@
 
     <fragment
         android:id="@+id/registerFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.auth.RegisterFragment"
         android:label="Sign Up">
         <argument android:name="title" app:argType="string" android:defaultValue="Sign Up" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
@@ -61,7 +77,7 @@
 
     <fragment
         android:id="@+id/historyFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.history.HistoryFragment"
         android:label="Ride History">
         <argument android:name="title" app:argType="string" android:defaultValue="Ride History" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Riya" />
@@ -70,17 +86,15 @@
     <!-- Rides (Ada) -->
     <fragment
         android:id="@+id/rideDetailsFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.ride.RideDetailsFragment"
         android:label="Ride Details">
-        <argument android:name="title" app:argType="string" android:defaultValue="Ride Details" />
-        <argument android:name="owner" app:argType="string" android:defaultValue="Ada" />
         <argument android:name="rideId" app:argType="string" app:nullable="true" android:defaultValue="@null" />
     </fragment>
 
     <!-- Membership (Hailey) -->
     <fragment
         android:id="@+id/requestsInboxFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.membership.MembershipFragment"
         android:label="Join Requests">
         <argument android:name="title" app:argType="string" android:defaultValue="Join Requests" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Hailey" />
@@ -90,16 +104,25 @@
     <!-- Cost (Estelle) -->
     <fragment
         android:id="@+id/completeRideFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.ride.CompleteRideFragment"
         android:label="Complete Ride">
         <argument android:name="title" app:argType="string" android:defaultValue="Complete Ride" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Estelle" />
         <argument android:name="rideId" app:argType="string" app:nullable="true" android:defaultValue="@null" />
     </fragment>
 
+
+    <!-- Payment Tracking (Estelle) -->
+    <fragment
+        android:id="@+id/paymentTrackingFragment"
+        android:name="com.example.trojanrideshare.ui.ride.PaymentTrackingFragment"
+        android:label="Ride Payments">
+        <argument android:name="rideId" app:argType="string" app:nullable="true" android:defaultValue="@null" />
+    </fragment>
+
     <fragment
         android:id="@+id/monthlySummaryFragment"
-        android:name="com.example.trojanrideshare.ui.common.PlaceholderFragment"
+        android:name="com.example.trojanrideshare.ui.ride.MonthlySummaryFragment"
         android:label="Monthly Summary">
         <argument android:name="title" app:argType="string" android:defaultValue="Monthly Summary" />
         <argument android:name="owner" app:argType="string" android:defaultValue="Estelle" />
@@ -113,5 +136,6 @@
     <action android:id="@+id/action_global_monthlySummary" app:destination="@id/monthlySummaryFragment" />
     <action android:id="@+id/action_global_login" app:destination="@id/loginFragment" />
     <action android:id="@+id/action_global_register" app:destination="@id/registerFragment" />
+    <action android:id="@+id/action_global_paymentTracking" app:destination="@id/paymentTrackingFragment" />
 
 </navigation>

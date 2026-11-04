@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Create Account"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="20dp"/>
+
+        <EditText
+            android:id="@+id/inputFullName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Full Name"
+            android:inputType="textPersonName"/>
+
+        <EditText
+            android:id="@+id/inputNickname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nickname (optional)"
+            android:inputType="textPersonName"/>
+
+        <EditText
+            android:id="@+id/inputEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="USC Email"
+            android:inputType="textEmailAddress"/>
+
+        <EditText
+            android:id="@+id/inputUscId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="10-digit USC ID"
+            android:inputType="number"
+            android:maxLength="10"/>
+
+        <EditText
+            android:id="@+id/inputGraduationYear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Expected Graduation Year"
+            android:inputType="number"
+            android:maxLength="4"/>
+
+        <EditText
+            android:id="@+id/inputPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Password"
+            android:inputType="textPassword"/>
+
+        <Button
+            android:id="@+id/buttonRegister"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Create Account"
+            android:layout_marginTop="24dp"/>
+
+        <TextView
+            android:id="@+id/textRegistrationError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#B3261E"
+            android:layout_marginTop="12dp"
+            android:accessibilityLiveRegion="polite"/>
+
+    </LinearLayout>
+</ScrollView>

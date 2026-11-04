@@ -1,0 +1,261 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------
+    // Helpers
+    // ---------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function publicPath(uid) {
+      return /databases/$(database)/documents/publicProfiles/$(uid);
+    }
+
+    function reservationPath(uscId) {
+      return /databases/$(database)/documents/uscIdReservations/$(uscId);
+    }
+
+    function validName(value) {
+      return value is string && value.size() > 0 && value.size() <= 100
+        && value.matches('.*[^ \\t\\r\\n].*');
+    }
+
+    function validLocation(place) {
+      return place is map && validName(place.address)
+        && place.latitude is number && place.longitude is number
+        && place.latitude >= -90 && place.latitude <= 90
+        && place.longitude >= -180 && place.longitude <= 180;
+    }
+
+    function validRideTiming(data) {
+      return (data.activityStatus == 'ON_TIME'
+          && data.get('delayedDepartureTime', null) == null
+          && data.departureTime > request.time)
+        || (data.activityStatus == 'DELAYED'
+          && data.delayedDepartureTime is timestamp
+          && data.delayedDepartureTime > data.departureTime
+          && data.delayedDepartureTime > request.time);
+    }
+
+    // A member may share their own participation through their public profile.
+    // Checking the actual participant list prevents strangers publishing private rides.
+    function sharedByMember(data, index, rideId) {
+      return data.participants.size() > index
+        && rideId in get(publicPath(data.participants[index].userId)).data.get('sharedRideIds', []);
+    }
+
+    function publiclyShared(data, rideId) {
+      return sharedByMember(data, 0, rideId) || sharedByMember(data, 1, rideId)
+        || sharedByMember(data, 2, rideId) || sharedByMember(data, 3, rideId)
+        || sharedByMember(data, 4, rideId) || sharedByMember(data, 5, rideId);
+    }
+
+    // ---------------------------------------
+    // Rides
+    // Based on Hailey's earlier ride rules
+    // ---------------------------------------
+
+    match /rides/{rideId} {
+
+      allow read: if signedIn() && (
+        resource.data.activityStatus in ['ON_TIME', 'DELAYED']
+        || resource.data.organizerId == request.auth.uid
+        || request.auth.uid in resource.data.get('participantIds', [])
+        || publiclyShared(resource.data, rideId)
+      );
+
+      allow create: if signedIn()
+        && request.resource.data.organizerId == request.auth.uid
+        && request.resource.data.participants.size() == 1
+        && request.resource.data.participants[0].userId == request.auth.uid
+        && request.resource.data.maxRiders is int
+        && request.resource.data.maxRiders >= 2
+        && request.resource.data.maxRiders <= 6
+        && request.resource.data.activityStatus == 'ON_TIME'
+        && request.resource.data.capacityStatus == 'OPEN'
+        && validName(request.resource.data.title)
+        && validLocation(request.resource.data.origin)
+        && validLocation(request.resource.data.destination)
+        && request.resource.data.departureTime is timestamp
+        && request.resource.data.departureTime > request.time
+        && request.resource.data.get('delayedDepartureTime', null) == null
+        && request.resource.data.expectedCostCents is int
+        && request.resource.data.expectedCostCents > 0
+        && request.resource.data.get('participantIds', [request.auth.uid]) == [request.auth.uid]
+        && request.resource.data.get('actualCostCents', null) == null
+        && request.resource.data.get('completedAt', null) == null
+        && request.resource.data.get('costShares', null) == null;
+
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && !(resource.data.activityStatus in ['CANCELLED', 'COMPLETED'])
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'activityStatus',
+              'delayedDepartureTime',
+              'capacityStatus'
+            ])
+        && request.resource.data.activityStatus in ['ON_TIME', 'DELAYED']
+        && request.resource.data.capacityStatus == resource.data.capacityStatus
+        && validRideTiming(request.resource.data);
+
+    }
+
+    // ---------------------------------------
+    // Join Requests
+    // Based on Hailey's earlier rules
+    // ---------------------------------------
+
+    match /joinRequests/{requestId} {
+
+      allow read: if signedIn()
+        && (
+          resource.data.userId == request.auth.uid
+          ||
+          get(
+            /databases/$(database)/documents/rides/$(resource.data.rideId)
+          ).data.organizerId == request.auth.uid
+        );
+
+      // Membership writes are handled separately.
+      allow write: if false;
+    }
+
+    // ---------------------------------------
+    // Private User Profiles
+    // ---------------------------------------
+
+    match /users/{uid} {
+
+      // Users can access only their own private profile.
+      allow get: if isOwner(uid);
+      allow list: if false;
+
+      // Registration must create a matching public profile
+      // and reserve the USC ID in the same atomic batch.
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.uscId is string
+        && request.resource.data.uscId.matches('^[0-9]{10}$')
+        && validName(request.resource.data.fullName)
+        && validName(request.resource.data.nickname)
+        && request.resource.data.uscEmail is string
+        && request.resource.data.uscEmail.matches('^[A-Za-z0-9._%+-]+@usc[.]edu$')
+        && request.resource.data.graduationYear is int
+        && request.resource.data.graduationYear >= request.time.year()
+        && request.resource.data.graduationYear <= request.time.year() + 6
+        && getAfter(
+            reservationPath(request.resource.data.uscId)
+          ).data.uid == uid
+        && getAfter(
+            publicPath(uid)
+          ).data.fullName == request.resource.data.fullName
+        && getAfter(
+            publicPath(uid)
+          ).data.displayName == request.resource.data.nickname;
+
+      // Only the nickname may be modified.
+      // It must match the public profile nickname.
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['nickname'])
+        && validName(request.resource.data.nickname)
+        && getAfter(
+            publicPath(uid)
+          ).data.displayName == request.resource.data.nickname;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------
+    // Public Profiles and Ride Sharing
+    // ---------------------------------------
+
+    match /publicProfiles/{uid} {
+
+      // Signed-in users can view public profiles.
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Public profile creation during registration.
+      allow create: if isOwner(uid)
+        && request.resource.data.keys()
+            .hasOnly(['displayName', 'fullName'])
+        && request.resource.data.keys()
+            .hasAll(['displayName', 'fullName'])
+        && request.resource.data.displayName is string
+        && request.resource.data.fullName is string
+        && getAfter(userPath(uid)).data.nickname ==
+            request.resource.data.displayName
+        && getAfter(userPath(uid)).data.fullName ==
+            request.resource.data.fullName;
+
+      // Sharing-only updates must preserve the existing name.
+      // Nickname updates must match the private profile.
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['displayName', 'sharedRideIds'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 100
+        && request.resource.data.fullName == resource.data.fullName
+        && (
+          !('sharedRideIds' in request.resource.data)
+          ||
+          (
+            request.resource.data.sharedRideIds is list
+            && request.resource.data.sharedRideIds.size() <= 100
+          )
+        )
+        && (
+          request.resource.data.displayName ==
+              resource.data.displayName
+          ||
+          getAfter(userPath(uid)).data.nickname ==
+              request.resource.data.displayName
+        );
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------
+    // USC ID Reservations
+    // ---------------------------------------
+
+    match /uscIdReservations/{uscId} {
+
+      // Reservation documents contain private identifiers.
+      allow read: if false;
+
+      // A USC ID can only be reserved once.
+      allow create: if signedIn()
+        && uscId.matches('^[0-9]{10}$')
+        && request.resource.data.keys()
+            .hasOnly(['uid'])
+        && request.resource.data.keys()
+            .hasAll(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(
+            userPath(request.auth.uid)
+          ).data.uscId == uscId;
+
+      allow update, delete: if false;
+    }
+  }
+}

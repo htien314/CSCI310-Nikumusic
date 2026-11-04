@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Profile title -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:text="My Profile"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <!-- Status and error messages -->
+        <TextView
+            android:id="@+id/profileMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:accessibilityLiveRegion="polite"
+            android:visibility="gone" />
+
+        <!-- Session controls remain reachable even while profile data is loading. -->
+        <Button
+            android:id="@+id/profileLogoutButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/profile_log_out"
+            android:visibility="gone" />
+
+        <TextView android:id="@+id/profilePaymentFlags" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/profile_payment_flags" android:visibility="gone" />
+        <!-- Signed-in profile -->
+        <LinearLayout
+            android:id="@+id/profileSignedIn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Full name -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Full Name"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/profileFullName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="16dp"
+                android:textSize="18sp" />
+
+            <!-- Private account details -->
+            <TextView
+                android:id="@+id/profileEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/profileUscId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/profileGraduationYear"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Nickname editing -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nickname"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/profileNickname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="Enter your nickname"
+                android:inputType="textPersonName"
+                android:maxLines="1" />
+
+            <Button
+                android:id="@+id/profileSaveNicknameButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Save Nickname" />
+
+            <!-- Private upcoming rides -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="Upcoming Rides"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/profileUpcomingRides"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Loading upcoming rides..."
+                android:textSize="15sp" />
+
+            <!-- Public ride sharing -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="Public Ride Sharing"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Choose which upcoming and completed rides appear on your public profile."
+                android:textSize="14sp" />
+
+            <!-- Checkboxes are created by ProfileFragment.java -->
+            <LinearLayout
+                android:id="@+id/profileSharingContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Loading sharing preferences..." />
+
+            </LinearLayout>
+
+            <!-- Ride History navigation -->
+            <Button
+                android:id="@+id/profileViewHistoryButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="View Ride History" />
+
+
+        </LinearLayout>
+
+        <!-- Signed-out profile -->
+        <LinearLayout
+            android:id="@+id/profileSignedOut"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="Please log in or register to view your profile."
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/profileLoginButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Log In" />
+
+            <Button
+                android:id="@+id/profileRegisterButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Register" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>
