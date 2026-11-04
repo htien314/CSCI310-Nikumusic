@@ -46,3 +46,9 @@ functions/node_modules/.bin/firebase deploy --project trojanrideshare-672ad --on
 ```
 
 Deploy the rules and the new app together: older builds that still call the functions will fail on register, join and complete either way.
+
+### Status (Nov 4, 2026)
+
+Done on `trojanrideshare-672ad`: test rides deleted, `participantIds` filled on "Cost Split Test" and "Zbt", rules and index deployed. Logged-out reads and writes now return 403. Checked live in the app: register (a duplicate USC ID is refused), profile, search, ride details, participants, My Rides, create ride, request, accept, mark delayed and leave. Complete and pay were checked only on the local emulators, since completing needs a ride that has already departed.
+
+Known small issues, not fixed: a rider leaving logs a harmless PERMISSION_DENIED for the pending-requests lookup; after leaving, the rider still sees "Your request: accepted"; Cancel ride is hidden once a ride is delayed; tapping the Search tab from a deeper page doesn't return to the list.
