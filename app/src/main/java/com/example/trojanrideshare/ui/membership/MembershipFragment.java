@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 import com.example.trojanrideshare.R;
+import com.example.trojanrideshare.ui.common.UiStyle;
 import com.example.trojanrideshare.data.FirebaseJoinRequestRepository;
 import com.example.trojanrideshare.model.JoinRequest;
 import com.example.trojanrideshare.model.Participant;
@@ -112,6 +113,7 @@ public final class MembershipFragment extends Fragment {
                     && request.getStatus() != JoinRequest.Status.CANCELLED) continue;
             Ride ride = findRide(request.getRideId());
             text((ride == null ? "Ride request" : ride.getTitle()) + " · " + label(request.getStatus().name()));
+            showClosure(request);
             button("View request status", () -> open(request.getRideId()));
             if (++count == 10) break;
         }
@@ -131,12 +133,18 @@ public final class MembershipFragment extends Fragment {
         }
         if (own != null) {
             text("Your request: " + label(own.getStatus().name()) + " · " + time(own.getCreatedAt()));
+            showClosure(own);
         }
         text("This ride is not available in your current list. You can still review your own request status.");
         button("Back to My Rides", () -> {
             androidx.navigation.NavController nav = NavHostFragment.findNavController(this);
             if (!nav.popBackStack(R.id.myRidesFragment, false)) nav.navigate(R.id.myRidesFragment);
         });
+    }
+    private void showClosure(JoinRequest request) {
+        if ("RIDE_CANCELLED".equals(request.getClosedReason())) text("Ride cancelled by the organizer.");
+        else if ("RIDE_FULL".equals(request.getClosedReason())) text("The ride filled before your request was accepted.");
+        else if ("RIDE_COMPLETED".equals(request.getClosedReason())) text("The ride has been completed.");
     }
     private void showRide(Ride ride) {
         button("Ride details and payments", () -> {
@@ -205,7 +213,19 @@ public final class MembershipFragment extends Fragment {
         Bundle args = new Bundle(); args.putString(Constants.ARG_RIDE_ID, id);
         NavHostFragment.findNavController(this).navigate(R.id.action_global_requestsInbox, args);
     }
-    private void rideLink(Ride ride) { button(ride.getTitle() + " · " + time(ride.getCurrentDepartureTime()), () -> open(ride.getId())); }
+    private void rideLink(Ride ride) {
+        LinearLayout card = UiStyle.card(requireContext());
+        card.addView(UiStyle.text(requireContext(), ride.getTitle(), 18, true, false));
+        card.addView(UiStyle.text(requireContext(), time(ride.getCurrentDepartureTime()), 14, false, true));
+        if (ride.getOrigin() != null && ride.getDestination() != null)
+            card.addView(UiStyle.text(requireContext(), ride.getOrigin().getAddress() + " → " + ride.getDestination().getAddress(), 14, false, true));
+        card.addView(UiStyle.text(requireContext(), ride.getParticipants().size() + " / " + ride.getMaxRiders()
+                + " riders · " + label(ride.getActivityStatus().name()), 14, true, false));
+        TextView action = UiStyle.text(requireContext(), "View ride →", 14, true, false);
+        action.setTextColor(UiStyle.color(requireContext(), R.color.brand_primary));
+        card.addView(action); card.setClickable(true); card.setFocusable(true);
+        card.setOnClickListener(v -> open(ride.getId())); content.addView(card);
+    }
     private Ride findRide(String id) {
         for (Ride ride : model.getRides().getValue()) if (id.equals(ride.getId())) return ride;
         return null;
@@ -221,11 +241,11 @@ public final class MembershipFragment extends Fragment {
     }
     private void heading(String value) { TextView view = text(value); view.setTextSize(20); view.setPadding(0, 24, 0, 8); }
     private TextView text(String value) {
-        TextView view = new TextView(requireContext()); view.setText(value); view.setTextSize(16); view.setPadding(0, 6, 0, 6);
+        TextView view = UiStyle.text(requireContext(), value, 16, false, false);
         content.addView(view); return view;
     }
     private void button(String title, Runnable action) {
-        Button button = new Button(requireContext()); button.setText(title); button.setMinHeight(48);
+        Button button = UiStyle.secondaryButton(requireContext()); button.setText(title); button.setMinHeight(UiStyle.dp(requireContext(), 48));
         button.setEnabled(!Boolean.TRUE.equals(model.getBusy().getValue()));
         button.setOnClickListener(view -> action.run()); content.addView(button);
     }

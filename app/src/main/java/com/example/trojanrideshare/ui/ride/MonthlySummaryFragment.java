@@ -95,13 +95,24 @@ public class MonthlySummaryFragment extends Fragment {
             loadSummary();
         });
 
-        loadSummary();
+    }
+
+    @Override public void onResume() {
+        super.onResume();
+        if (monthText != null) loadSummary();
     }
 
     // Fetch rides for the selected month.
     private void loadSummary() {
         int currentRequest = ++requestVersion;
 
+        rideCountText.setText("Completed rides: —");
+        organizedText.setText("Rides organized: —");
+        joinedText.setText("Rides joined: —");
+        totalCostText.setText("Total ride costs: —");
+        myShareText.setText("My share: —");
+        paidText.setText("Paid: —");
+        unpaidText.setText("Outstanding: —");
         monthText.setText(selectedMonth.format(MONTH_FORMAT));
         statusText.setText("Loading monthly summary...");
         errorText.setVisibility(View.GONE);
@@ -121,6 +132,7 @@ public class MonthlySummaryFragment extends Fragment {
                     @Override
                     public void onSuccess(List<Ride> rides) {
                         if (getView() != screen
+                                || !userId.equals(CurrentUser.id())
                                 || currentRequest != requestVersion
                                 || !requestedMonth.equals(selectedMonth)) {
                             return;
@@ -135,6 +147,7 @@ public class MonthlySummaryFragment extends Fragment {
                     @Override
                     public void onError(Exception error) {
                         if (getView() != screen
+                                || !userId.equals(CurrentUser.id())
                                 || currentRequest != requestVersion
                                 || !requestedMonth.equals(selectedMonth)) {
                             return;

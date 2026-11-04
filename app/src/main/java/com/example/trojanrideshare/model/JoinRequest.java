@@ -12,6 +12,7 @@ public class JoinRequest {
     private String displayName;
     private String message;
     private Status status;
+    private String closedReason;
     private Timestamp createdAt;
     private Timestamp updatedAt;
     public JoinRequest() { }
@@ -25,6 +26,8 @@ public class JoinRequest {
     public void setDisplayName(String value) { displayName = value; }
     public String getMessage() { return message; }
     public void setMessage(String value) { message = value; }
+    public String getClosedReason() { return closedReason; }
+    public void setClosedReason(String value) { closedReason = value; }
     public Status getStatus() { return status; }
     public void setStatus(Status value) { status = value; }
     public Timestamp getCreatedAt() { return createdAt; }

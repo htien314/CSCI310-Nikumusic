@@ -96,3 +96,12 @@ test('failures preserve input snapshots', () => {
   denied({ride:original, requests:pending, action:'accept'}, /current organizer/);
   assert.equal(original.participants.length, 1); assert.equal(pending[0].status, 'PENDING');
 });
+
+test('cancelled rides explain closure to pending requesters without exposing the ride',()=>{
+ const now={toMillis:()=>0};
+ const ride={id:'r',organizerId:'owner',participants:[{userId:'owner',displayName:'Owner',acceptedAt:now}],maxRiders:2,
+  activityStatus:'ON_TIME',capacityStatus:'OPEN',departureTime:{toMillis:()=>86400000}};
+ const result=transition({ride,requests:[{id:'q',rideId:'r',userId:'alice',status:'PENDING'}],action:'cancelRide',uid:'owner',now});
+ assert.equal(result.changed[0].status,'REJECTED');
+ assert.equal(result.changed[0].closedReason,'RIDE_CANCELLED');
+});

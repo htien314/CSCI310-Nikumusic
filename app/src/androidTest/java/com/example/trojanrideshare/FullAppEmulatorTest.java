@@ -55,7 +55,9 @@ public class FullAppEmulatorTest {
         DocumentSnapshot created=Tasks.await(db.collection("rides").whereEqualTo("title",title).whereEqualTo("organizerId",FirebaseAuth.getInstance().getUid()).get(),30,TimeUnit.SECONDS).getDocuments().get(0);
         rideId=created.getId();
         assertTrue(((Number)((java.util.Map<?,?>)created.get("origin")).get("latitude")).doubleValue()>33);
-        checkpoint("Owner registered and created a ride using real geocoding");
+        checkpoint("Owner registered and created a ride using " +
+                ("fixture".equals(InstrumentationRegistry.getArguments().getString("locationMode"))
+                        ? "explicit USC/LAX test fixtures" : "real geocoding"));
         logout();register("Alice","6000000002");requestRide();
         logout();register("Bob","6000000003");requestRide();
         logout();login("Owner");openMembership();tapText("Accept Alice");
@@ -89,6 +91,7 @@ public class FullAppEmulatorTest {
         logout();login("Bob");openMembership();requestFromMembership();
         logout();login("Owner");openRide();tap(R.id.cancel_button);tapDialog("Cancel ride");awaitRide("activityStatus","CANCELLED");
         logout();login("Bob");openMembership();waitText(containsString("Your request: rejected"));
+        waitText(containsString("Ride cancelled by the organizer."));
         checkpoint("Cancellation closed the pending request across accounts");
     }
     @Test public void accountAndRequestsSurviveProcessRestart() throws Exception {
@@ -103,6 +106,35 @@ public class FullAppEmulatorTest {
         assertEquals(2,requests.size());
         for(DocumentSnapshot request:requests)assertEquals("REJECTED",request.getString("status"));
         checkpoint("Sign-in and server request state survived a full app process restart");
+    }
+
+    @Test public void customSplitUsesNamesAndValidatesEveryAmount() throws Exception {
+        Assume.assumeTrue(BuildConfig.DEBUG && BuildConfig.USE_FIREBASE_EMULATOR
+                && FirebaseApp.getInstance().getOptions().getProjectId().startsWith("demo-"));
+        db=FirebaseFirestore.getInstance(); launch(); logout(); login("Owner");
+        createRide("Device test custom split");
+        rideId=Tasks.await(db.collection("rides").whereEqualTo("title","Device test custom split")
+                .whereEqualTo("organizerId",FirebaseAuth.getInstance().getUid()).get(),30,TimeUnit.SECONDS).getDocuments().get(0).getId();
+        logout(); login("Alice"); openMembership(); requestFromMembership();
+        logout(); login("Owner"); openMembership(); tapText("Accept Alice"); awaitRide("capacityStatus","FULL");
+        fixture("depart"); openRide(); tap(R.id.complete_ride_button);
+        fill(R.id.inputTotalCost,"10.001");
+        onView(withId(R.id.buttonCompleteRide)).check(matches(not(isEnabled())));
+        fill(R.id.inputTotalCost,"10.01");
+        waitText(containsString("Owner  •")); waitText(containsString("Alice  •"));
+        tap(R.id.radioCustom);
+        onView(withHint("Owner ($)")).perform(scrollTo(),replaceText("0.00"));
+        onView(withHint("Alice ($)")).perform(scrollTo(),replaceText("9.00"));
+        onView(withId(R.id.buttonCompleteRide)).check(matches(not(isEnabled())));
+        onView(withHint("Alice ($)")).perform(scrollTo(),replaceText("1e2"));
+        onView(withId(R.id.buttonCompleteRide)).check(matches(not(isEnabled())));
+        onView(withHint("Alice ($)")).perform(scrollTo(),replaceText("10.01"));
+        waitEnabled(R.id.buttonCompleteRide); tap(R.id.buttonCompleteRide);
+        awaitRide("activityStatus","COMPLETED");waitText(containsString("Total: $10.01"));
+        String owner=FirebaseAuth.getInstance().getUid();
+        java.util.Map<?,?> shares=(java.util.Map<?,?>) Tasks.await(db.collection("rides").document(rideId).get(),10,TimeUnit.SECONDS).get("costShares");
+        assertEquals(0L,((Number)((java.util.Map<?,?>)shares.get(owner)).get("amountCents")).longValue());
+        checkpoint("Custom split names, zero share, invalid amounts and exact total verified");
     }
 
     private void launch() {

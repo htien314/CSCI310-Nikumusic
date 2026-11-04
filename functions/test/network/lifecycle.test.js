@@ -77,6 +77,7 @@ test('real SDK authentication and callable endpoints support the cross-account l
  await owner.call('membership',{action:'cancelRide',rideId:cancelId});
  const afterCancel=await getDocs(query(collection(bob.db,'joinRequests'),where('userId','==',bob.user.uid)));
  assert.equal(afterCancel.docs.find(d=>d.get('rideId')===cancelId).get('status'),'REJECTED');
+ assert.equal(afterCancel.docs.find(d=>d.get('rideId')===cancelId).get('closedReason'),'RIDE_CANCELLED');
  // Legacy participant IDs are repaired only by explicit migration; dry run writes nothing.
  await admin.doc(`rides/${rideId}`).update({participantIds:[]});
  const {execFileSync}=require('node:child_process');

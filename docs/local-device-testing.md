@@ -14,9 +14,17 @@ npm ci                 # only needed when dependencies are missing/outdated
 npm run test:device
 ```
 
-The script copies the current tracked source into a temporary build directory, changes only that copy's Firebase project to `demo-trojan-device`, gives it the separate Android ID `com.example.trojanrideshare.integrationtest`, and enables emulator connections. The normal installed app and its saved account remain intact. The test itself refuses to run against a non-demo Firebase project.
+The script copies the current working-tree source, including new untracked source files into a temporary build directory, changes only that copy's Firebase project to `demo-trojan-device`, gives it the separate Android ID `com.example.trojanrideshare.integrationtest`, and enables emulator connections. The normal installed app and its saved account remain intact. The test itself refuses to run against a non-demo Firebase project.
 
-It uses the actual Android signup/login and ride-creation forms, real Android geocoding, search, requests and approval, last-seat rejection, leaving/rejoining, completion, payment flags, marking a share paid, history, monthly summary and cancellation. A second phase force-stops the test app and verifies that its account and server request state survive restarting the process. Only the departure/overdue time fixtures are advanced through a local-only test helper; no live rides are edited.
+It uses the actual Android signup/login and ride-creation forms, search, requests and approval, last-seat rejection, leaving/rejoining, completion, payment flags, marking a share paid, history, monthly summary and cancellation. A second phase force-stops the test app and verifies that its account and server request state survive restarting the process. A third phase checks custom splits: participant names, a zero share, invalid decimals, exponent input and exact totals. Seven focused navigation/location regressions follow.
+
+The default location mode uses real Android geocoding. In the current review, Google's provider timed out during ride creation. To test the remaining workflow independently, explicitly select the fixed-location mode:
+
+```sh
+TROJAN_TEST_LOCATIONS=fixture npm run test:device
+```
+
+This substitutes only USC and LAX coordinates in the disposable demo build, refuses other place names, and displays **LOCAL DEMO · FIXED USC/LAX LOCATIONS** on screen. The substitution refuses non-debug/non-demo configurations. Production source and the normal APK retain the real geocoder. A passing fixture run does not verify real geocoding. Only the departure/overdue time fixtures are advanced through a local-only test helper; no live rides are edited.
 
 Results and the exported disposable demo dataset are recorded under `.firebase/`, which is ignored by Git. The test builds and installs its own APKs and does not uninstall the normal app.
 
@@ -48,4 +56,4 @@ When an organizer cancels a ride, a rejected requester may no longer read the pr
 
 ## Still outside this local checkpoint
 
-Live deployment, billing decisions, repairing old live ride records, reviewing live security rules/indexes, testing multiple physical devices concurrently, and a full device-level network-interruption exercise remain separate work. Backend tests cover additional race conditions and custom cost shares; this Android workflow uses an equal split.
+Live deployment, billing decisions, repairing old live ride records, reviewing live security rules/indexes, testing multiple physical devices concurrently, and a full device-level network-interruption exercise remain separate work. Backend tests cover additional race conditions. The Android workflow now covers both equal and custom cost splits. Real geocoding must be retested on a working provider/network before the demo.

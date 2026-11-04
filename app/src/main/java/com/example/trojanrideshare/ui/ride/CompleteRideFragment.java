@@ -30,7 +30,8 @@ import com.example.trojanrideshare.util.Clock;
 import com.example.trojanrideshare.util.Constants;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.math.BigDecimal;
+import com.example.trojanrideshare.util.MoneyParser;
+import com.example.trojanrideshare.ui.common.UiStyle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +48,7 @@ public class CompleteRideFragment extends Fragment {
     private Button completeButton;
 
     private final List<String> riderIds = new ArrayList<>();
+    private final Map<String, String> riderNames = new LinkedHashMap<>();
     private final Map<String, EditText> customInputs =
             new LinkedHashMap<>();
 
@@ -130,6 +132,7 @@ public class CompleteRideFragment extends Fragment {
                 }
 
                 riderIds.clear();
+                riderNames.clear();
 
                 for (Participant participant : ride.getParticipants()) {
                     if (participant == null
@@ -141,6 +144,8 @@ public class CompleteRideFragment extends Fragment {
                     }
 
                     riderIds.add(participant.getUserId());
+                    String name = participant.getDisplayName();
+                    riderNames.put(participant.getUserId(), name == null || name.trim().isEmpty() ? "Rider" : name);
                 }
 
                 rideReady = true;
@@ -250,9 +255,7 @@ public class CompleteRideFragment extends Fragment {
 
     // Convert dollars into exact cents without floating-point rounding.
     private long parseCents(String value) {
-        return new BigDecimal(value.trim())
-                .movePointRight(2)
-                .longValueExact();
+        return MoneyParser.parseNonNegativeCents(value);
     }
 
     private String dollars(long cents) {
@@ -309,11 +312,15 @@ public class CompleteRideFragment extends Fragment {
 
             for (Map.Entry<String, Long> entry : shares.entrySet()) {
                 TextView row = new TextView(requireContext());
-                row.setText(entry.getKey() + "  •  "
+                row.setText(riderNames.get(entry.getKey()) + "  •  "
                         + dollars(entry.getValue()));
                 row.setTextSize(16);
-                row.setTextColor(0xFF302347);
-                row.setPadding(16, 20, 16, 20);
+                row.setTextColor(UiStyle.color(requireContext(), R.color.app_ink));
+                row.setBackgroundResource(R.drawable.bg_mint);
+                row.setPadding(UiStyle.dp(requireContext(), 16), UiStyle.dp(requireContext(), 14), UiStyle.dp(requireContext(), 16), UiStyle.dp(requireContext(), 14));
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+                params.bottomMargin = UiStyle.dp(requireContext(), 10);
+                row.setLayoutParams(params);
                 sharesContainer.addView(row);
             }
 
@@ -329,8 +336,12 @@ public class CompleteRideFragment extends Fragment {
         customInputs.clear();
 
         for (String id : riderIds) {
-            EditText input = new EditText(requireContext());
-            input.setHint(id + " ($)");
+            EditText input = new EditText(requireContext(), null, 0, R.style.Widget_Trojan_Input);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+            params.bottomMargin = UiStyle.dp(requireContext(), 12);
+            input.setLayoutParams(params);
+            input.setHint(riderNames.get(id) + " ($)");
+            input.setContentDescription(riderNames.get(id) + " share in dollars");
             input.setSingleLine(true);
             input.setInputType(
                     InputType.TYPE_CLASS_NUMBER
@@ -344,7 +355,7 @@ public class CompleteRideFragment extends Fragment {
         }
 
         customHint = new TextView(requireContext());
-        customHint.setTextColor(0xFF746985);
+        customHint.setTextColor(UiStyle.color(requireContext(), R.color.app_muted));
         customHint.setPadding(0, 16, 0, 0);
         sharesContainer.addView(customHint);
     }
@@ -382,21 +393,21 @@ public class CompleteRideFragment extends Fragment {
 
             if (input == null) {
                 throw new IllegalArgumentException(
-                        "Missing amount for " + riderId);
+                        "Missing amount for " + riderNames.get(riderId));
             }
 
             String value = input.getText().toString().trim();
 
             if (value.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "Enter a share for " + riderId);
+                        "Enter a share for " + riderNames.get(riderId));
             }
 
             try {
                 shares.put(riderId, parseCents(value));
             } catch (IllegalArgumentException | ArithmeticException e) {
                 throw new IllegalArgumentException(
-                        "Enter a valid dollar amount for " + riderId);
+                        "Enter a valid dollar amount for " + riderNames.get(riderId));
             }
         }
 
@@ -428,6 +439,7 @@ public class CompleteRideFragment extends Fragment {
     public void onDestroyView() {
         customInputs.clear();
         riderIds.clear();
+        riderNames.clear();
         customHint = null;
         rideReady = false;
         saving = false;

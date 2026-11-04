@@ -117,7 +117,9 @@ public class LocationPickerView extends LinearLayout {
                 if (settingText) {
                     return;
                 }
+                lookupGeneration++;
                 inputLayout.setError(null);
+                inputLayout.setHelperText(null);
                 if (selected != null) {
                     selected = null;
                     inputLayout.setHelperText(null);
@@ -152,6 +154,7 @@ public class LocationPickerView extends LinearLayout {
         if (location == null) {
             clear();
         } else {
+            lookupGeneration++;
             select(location);
         }
     }
@@ -190,7 +193,7 @@ public class LocationPickerView extends LinearLayout {
                 if (places.size() == 1) {
                     select(places.get(0));
                 } else {
-                    askWhich(places);
+                    askWhich(places, generation);
                 }
             }
 
@@ -229,8 +232,10 @@ public class LocationPickerView extends LinearLayout {
             public void onSuccess(Location place) {
                 if (generation == lookupGeneration) {
                     select(place);
+                    callback.onSuccess(place);
+                } else {
+                    callback.onError(new IllegalStateException("Location changed. Please try again."));
                 }
-                callback.onSuccess(place);
             }
 
             @Override
@@ -243,14 +248,16 @@ public class LocationPickerView extends LinearLayout {
         });
     }
 
-    private void askWhich(List<Location> places) {
+    private void askWhich(List<Location> places, int generation) {
         CharSequence[] addresses = new CharSequence[places.size()];
         for (int i = 0; i < places.size(); i++) {
             addresses[i] = places.get(i).getAddress();
         }
         new MaterialAlertDialogBuilder(getContext())
                 .setTitle(R.string.location_choose)
-                .setItems(addresses, (dialog, which) -> select(places.get(which)))
+                .setItems(addresses, (dialog, which) -> {
+                    if (generation == lookupGeneration) select(places.get(which));
+                })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
@@ -278,6 +285,11 @@ public class LocationPickerView extends LinearLayout {
         if (listener != null) {
             listener.onLocationSelected(selected);
         }
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        lookupGeneration++;
+        super.onDetachedFromWindow();
     }
 
     // ---- saving state across rotation ----

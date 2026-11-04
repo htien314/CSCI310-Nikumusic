@@ -32,19 +32,29 @@ const server=http.createServer(async(req,res)=>{
  run(['install','-r',path.join(root,'app/build/outputs/apk/debug/app-debug.apk')]);
  run(['install','-r',path.join(root,'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')]);
  run(['shell','pm','clear','com.example.trojanrideshare.integrationtest']);
- async function instrument(method, checkpoint) {
-  const child=spawn(adb,['-s',device,'shell','am','instrument','-w','-e','class',`com.example.trojanrideshare.FullAppEmulatorTest#${method}`,'com.example.trojanrideshare.integrationtest.test/androidx.test.runner.AndroidJUnitRunner']);
+ async function instrument(method, checkpoint, className = "FullAppEmulatorTest") {
+  const child=spawn(adb,['-s',device,'shell','am','instrument','-w','-e','locationMode',process.env.TROJAN_TEST_LOCATIONS || 'real','-e','class',`com.example.trojanrideshare.${className}#${method}`,'com.example.trojanrideshare.integrationtest.test/androidx.test.runner.AndroidJUnitRunner']);
   let output='';child.stdout.on('data',d=>{output+=d;process.stdout.write(d);});child.stderr.pipe(process.stderr);
   const timer=setTimeout(()=>child.kill('SIGTERM'),600000);
   let code;
   try {code=await new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',resolve);});}
   finally {clearTimeout(timer);}
-  if(code!==0 || !/OK \(1 test\)/.test(output) || !output.includes(checkpoint))throw new Error(`Android workflow phase did not pass: ${method}`);
+  if(code!==0 || !/OK \(1 test\)/.test(output) || (checkpoint && !output.includes(checkpoint)))throw new Error(`Android workflow phase did not pass: ${method}`);
  }
  await instrument('multipleAccountsThroughRealAndroidScreens','Cancellation closed the pending request across accounts');
  run(['shell','am','force-stop','com.example.trojanrideshare.integrationtest']);
  await instrument('accountAndRequestsSurviveProcessRestart','Sign-in and server request state survived a full app process restart');
- console.log('Full Android form/navigation workflow passed against demo emulators.');
+ await instrument('customSplitUsesNamesAndValidatesEveryAmount','Custom split names, zero share, invalid amounts and exact total verified');
+ for (const [className,method] of [
+  ['AccountNavigationTest','profileLoginSearchProfileAlwaysShowsProfileRoot'],
+  ['AccountNavigationTest','reselectingProfileFromLoginReturnsToProfile'],
+  ['AccountNavigationTest','authenticationReturnRemovesLoginAndSignupFromBackStack'],
+  ['AccountNavigationTest','profileReturnPreservesSearchForm'],
+  ['AccountNavigationTest','childScreensOfferAnAccessibleBackButton'],
+  ['LocationPickerViewTest','slowLookupCannotOverwriteEditedText'],
+  ['LocationPickerViewTest','formResolveRejectsAnAnswerForAnEditedLocation']])
+  await instrument(method,null,className);
+ console.log('Full Android form/navigation workflow passed against demo emulators. Location mode: '+(process.env.TROJAN_TEST_LOCATIONS || 'real')+'.');
 })().catch(error=>{console.error(error.message);process.exitCode=1;}).finally(async()=>{
  server.close();await deleteApp(app);
  spawnSync(adb,['-s',device,'shell','am','start','-n','com.example.trojanrideshare/.MainActivity'],{stdio:'ignore'});

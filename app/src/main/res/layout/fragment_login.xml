@@ -1,61 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="Log In"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/inputLoginEmail"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:hint="USC Email"
-            android:inputType="textEmailAddress"
-            android:autofillHints="emailAddress" />
-
-        <EditText
-            android:id="@+id/inputLoginPassword"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:hint="Password"
-            android:inputType="textPassword"
-            android:autofillHints="password" />
-
-        <Button
-            android:id="@+id/buttonLogin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:layout_marginTop="24dp"
-            android:text="Log In" />
-
-        <Button
-            android:id="@+id/buttonGoToRegister"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="Create an Account" />
-
-        <TextView
-            android:id="@+id/textLoginError"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textColor="#B3261E"
-            android:accessibilityLiveRegion="polite" />
-
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="@color/app_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+        <include layout="@layout/brand_wordmark" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Log In" android:textAppearance="@style/TextAppearance.Trojan.Title" />
+        <ImageView android:layout_width="match_parent" android:layout_height="128dp" android:src="@drawable/ride_illustration" android:scaleType="fitCenter" android:importantForAccessibility="no" android:layout_marginBottom="20dp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Your next shared ride starts here." android:textAppearance="@style/TextAppearance.Trojan.Subtitle" android:layout_marginBottom="24dp" />
+        <EditText android:id="@+id/inputLoginEmail" android:layout_width="match_parent" android:layout_height="56dp" android:hint="USC Email" android:inputType="textEmailAddress" android:autofillHints="emailAddress" style="@style/Widget.Trojan.Input" android:layout_marginBottom="12dp" />
+        <EditText android:id="@+id/inputLoginPassword" android:layout_width="match_parent" android:layout_height="56dp" android:hint="Password" android:inputType="textPassword" android:autofillHints="password" style="@style/Widget.Trojan.Input" android:layout_marginBottom="12dp" />
+        <Button android:id="@+id/buttonLogin" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:layout_marginTop="24dp" android:text="Log In" />
+        <Button android:id="@+id/buttonGoToRegister" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="Create an Account" style="@style/Widget.Material3.Button.OutlinedButton" />
+        <TextView android:id="@+id/textLoginError" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@color/app_error" android:accessibilityLiveRegion="polite" />
     </LinearLayout>
 </ScrollView>

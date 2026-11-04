@@ -38,12 +38,16 @@ public class RideService {
             if (title == null || title.trim().isEmpty()) {
                 throw new RideRuleException("Enter a title.");
             }
+            if (title.trim().length() > 100) throw new RideRuleException("Title must be at most 100 characters.");
+            if (note != null && note.length() > 2000) throw new RideRuleException("Note must be at most 2000 characters.");
             if (origin == null || !origin.isValid()) {
                 throw new RideRuleException("Choose a valid origin.");
             }
             if (destination == null || !destination.isValid()) {
                 throw new RideRuleException("Choose a valid destination.");
             }
+            if (origin.getAddress().length() > 1000 || destination.getAddress().length() > 1000)
+                throw new RideRuleException("Location addresses must be at most 1000 characters.");
             if (departureTime == null || millis(departureTime) <= now) {
                 throw new RideRuleException("Departure time must be in the future.");
             }

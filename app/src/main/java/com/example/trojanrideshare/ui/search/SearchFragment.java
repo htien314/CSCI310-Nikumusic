@@ -103,6 +103,13 @@ public class SearchFragment extends Fragment {
         if (radiusInput.getText().length() == 0) {
             radiusInput.setText(formatNumber(SearchViewModel.DEFAULT_RADIUS_MILES));
         }
+        Button toggleFilters = view.findViewById(R.id.searchToggleFilters);
+        View advancedFilters = view.findViewById(R.id.searchAdvancedFilters);
+        toggleFilters.setOnClickListener(v -> {
+            boolean expanded = advancedFilters.getVisibility() != View.VISIBLE;
+            advancedFilters.setVisibility(expanded ? View.VISIBLE : View.GONE);
+            toggleFilters.setText(expanded ? R.string.search_less_filters : R.string.search_more_filters);
+        });
         setUpSeatsSpinner();
         setUpSortSpinner(view.findViewById(R.id.sort_spinner));
 
@@ -249,6 +256,10 @@ public class SearchFragment extends Fragment {
         Ride ride = result.getRide();
         String departure = Instant.ofEpochMilli(result.getDepartureMillis())
                 .atZone(Constants.DISPLAY_ZONE).format(DEPARTURE_FORMAT);
+        String organizer = ride.getOrganizerName();
+        if (organizer == null || organizer.trim().isEmpty()) organizer = getString(R.string.search_organizer_fallback);
+        ((TextView) item.findViewById(R.id.result_organizer)).setText(organizer);
+        ((TextView) item.findViewById(R.id.result_avatar)).setText(organizer.substring(0, 1).toUpperCase(Locale.US));
         String cost = MoneyFormatter.format(ride.getExpectedCostCents());
         int seats = ride.getAvailableSeats();
         String origin = ride.getOrigin().getAddress();

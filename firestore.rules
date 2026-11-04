@@ -1,5 +1,14 @@
 
 rules_version = '2';
+// Prototype schema for the fully integrated app. Private users contain uid,
+// fullName/nickname (1-100), USC email/10-digit ID and graduationYear. Public
+// profiles contain names, optional sharedRideIds and server-owned overdueRideIds.
+// Rides contain immutable title (1-100), geocoded endpoint maps (address <=1000),
+// departure timestamp, maxRiders (2-6), positive integer-cent estimate, optional
+// note (<=2000), organizer identity and participants/participantIds. Nullable
+// actualCostCents, completedAt and costShares are written only by rideCosts.
+// Membership/request writes remain server-only; client updates only change delays.
+
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -34,7 +43,8 @@ service cloud.firestore {
     }
 
     function validLocation(place) {
-      return place is map && validName(place.address)
+      return place is map && place.keys().hasOnly(['address', 'latitude', 'longitude'])
+        && place.address is string && place.address.size() > 0 && place.address.size() <= 1000
         && place.latitude is number && place.longitude is number
         && place.latitude >= -90 && place.latitude <= 90
         && place.longitude >= -180 && place.longitude <= 180;
@@ -78,6 +88,17 @@ service cloud.firestore {
       );
 
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['title', 'origin', 'destination',
+          'departureTime', 'delayedDepartureTime', 'maxRiders', 'expectedCostCents',
+          'note', 'organizerId', 'participants', 'participantIds', 'activityStatus',
+          'capacityStatus', 'actualCostCents', 'completedAt', 'costShares'])
+        && request.resource.data.participants is list
+        && request.resource.data.participants[0].keys().hasOnly(['userId', 'displayName', 'acceptedAt'])
+        && validName(request.resource.data.participants[0].displayName)
+        && request.resource.data.participants[0].displayName == get(userPath(request.auth.uid)).data.nickname
+        && request.resource.data.participants[0].acceptedAt is timestamp
+        && (request.resource.data.get('note', null) == null
+          || (request.resource.data.note is string && request.resource.data.note.size() <= 2000))
         && request.resource.data.organizerId == request.auth.uid
         && request.resource.data.participants.size() == 1
         && request.resource.data.participants[0].userId == request.auth.uid
@@ -94,7 +115,7 @@ service cloud.firestore {
         && request.resource.data.get('delayedDepartureTime', null) == null
         && request.resource.data.expectedCostCents is int
         && request.resource.data.expectedCostCents > 0
-        && request.resource.data.get('participantIds', [request.auth.uid]) == [request.auth.uid]
+        && request.resource.data.participantIds == [request.auth.uid]
         && request.resource.data.get('actualCostCents', null) == null
         && request.resource.data.get('completedAt', null) == null
         && request.resource.data.get('costShares', null) == null;
@@ -148,6 +169,9 @@ service cloud.firestore {
       // Registration must create a matching public profile
       // and reserve the USC ID in the same atomic batch.
       allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'fullName', 'nickname', 'uscEmail', 'uscId', 'graduationYear'])
+        && request.auth.token.email is string
+        && request.resource.data.uscEmail.lower() == request.auth.token.email.lower()
         && request.resource.data.uid == uid
         && request.resource.data.uscId is string
         && request.resource.data.uscId.matches('^[0-9]{10}$')

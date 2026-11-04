@@ -56,10 +56,11 @@ public class UserRepository {
             OnSuccessListener<Void> onSuccess,
             OnFailureListener onFailure) {
 
-        if (nickname == null || nickname.trim().isEmpty()) {
+        String nicknameError = com.example.trojanrideshare.service.RegistrationValidator.validateNickname(nickname);
+        if (nicknameError != null) {
             onFailure.onFailure(
                     new IllegalArgumentException(
-                            "Nickname cannot be empty."
+                            nicknameError
                     )
             );
             return;

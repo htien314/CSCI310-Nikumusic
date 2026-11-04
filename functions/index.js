@@ -89,7 +89,7 @@ exports.rideCosts = onCall({region:'us-central1'}, async request => {
       }
       tx.update(ref,patch);
       if (publicRef) tx.set(publicRef,{overdueRideIds:overdue},{merge:true});
-      if(pending) for(const doc of pending.docs) tx.update(doc.ref,{status:'REJECTED',updatedAt:patch.completedAt});
+      if(pending) for(const doc of pending.docs) tx.update(doc.ref,{status:'REJECTED',closedReason:'RIDE_COMPLETED',updatedAt:patch.completedAt});
     });
     return {ok:true};
   } catch(error) {

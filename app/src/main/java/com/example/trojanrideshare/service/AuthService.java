@@ -75,6 +75,9 @@ public class AuthService {
                         ? cleanName
                         : nickname.trim();
 
+        String nicknameError = RegistrationValidator.validateNickname(displayName);
+        if (nicknameError != null) { onFailure.onFailure(new IllegalArgumentException(nicknameError)); return; }
+
         // Step 1: Create the Firebase Authentication account.
         auth.createUserWithEmailAndPassword(
                 cleanEmail,
@@ -112,11 +115,11 @@ public class AuthService {
                         // Attempt to delete the new Auth account.
                         firebaseUser.delete()
                                 .addOnSuccessListener(unused -> {
-                                    auth.signOut();
+                                    signOutIfCurrentUser(firebaseUser.getUid());
                                     onFailure.onFailure(error);
                                 })
                                 .addOnFailureListener(deleteError -> {
-                                    auth.signOut();
+                                    signOutIfCurrentUser(firebaseUser.getUid());
 
                                     onFailure.onFailure(
                                             new IllegalStateException(
@@ -169,6 +172,11 @@ public class AuthService {
                 )
                 .addOnSuccessListener(onSuccess)
                 .addOnFailureListener(onFailure);
+    }
+
+    private void signOutIfCurrentUser(String uid) {
+        FirebaseUser current = auth.getCurrentUser();
+        if (current != null && uid.equals(current.getUid())) auth.signOut();
     }
 
     // Log out.

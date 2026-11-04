@@ -12,10 +12,10 @@ before(async()=>{
 });
 after(async()=>{if(env) await env.cleanup();});
 beforeEach(async()=>{await env.clearFirestore();});
-const dbFor=uid=>env.authenticatedContext(uid).firestore();
+const dbFor=uid=>env.authenticatedContext(uid,{email:`${uid}@usc.edu`}).firestore();
 async function register(uid,id='1234567890',nickname='Hailey') {
  const db=dbFor(uid),batch=writeBatch(db);
- batch.set(doc(db,`users/${uid}`),{uid,fullName:'Hailey Tien',nickname,uscEmail:`${uid}@usc.edu`,uscId:id,graduationYear:2030});
+ batch.set(doc(db,`users/${uid}`),{uid,fullName:'Hailey Tien',nickname,uscEmail:`${uid}@usc.edu`,uscId:id,graduationYear:new Date().getUTCFullYear()+4});
  batch.set(doc(db,`publicProfiles/${uid}`),{displayName:nickname,fullName:'Hailey Tien'});
  batch.set(doc(db,`uscIdReservations/${id}`),{uid});
  await batch.commit();return db;
@@ -23,7 +23,7 @@ async function register(uid,id='1234567890',nickname='Hailey') {
 function ride(uid='alice') {
  return {title:'Airport',origin:{address:'USC',latitude:34.02,longitude:-118.28},
  destination:{address:'LAX',latitude:33.94,longitude:-118.4},departureTime:new Date(Date.now()+86400000),delayedDepartureTime:null,
- organizerId:uid,participants:[{userId:uid,displayName:'Hailey',acceptedAt:new Date()}],
+ organizerId:uid,participantIds:[uid],participants:[{userId:uid,displayName:'Hailey',acceptedAt:new Date()}],
  maxRiders:3,expectedCostCents:3000,note:null,activityStatus:'ON_TIME',capacityStatus:'OPEN'};
 }
 test('registration atomically creates private profile, public profile and ID reservation',async()=>{
@@ -159,4 +159,26 @@ test('privacy permits scoped membership, history and monthly-summary queries',as
  assert.equal((await assertSucceeds(getDocs(membership))).size,1);
  await assertSucceeds(getDocs(query(collection(db,'rides'),or(where('organizerId','==','alice'),where('participantIds','array-contains','alice')))));
  await assertSucceeds(getDocs(query(collection(db,'rides'),where('participantIds','array-contains','alice'),where('activityStatus','==','COMPLETED'))));
+});
+
+test('direct profile registration cannot forge the authenticated email or add fields',async()=>{
+ const db=dbFor('alice');
+ for(const change of [{uscEmail:'forged@usc.edu'},{role:'admin'}]) {
+  const batch=writeBatch(db),data={uid:'alice',fullName:'Alice',nickname:'Alice',uscEmail:'alice@usc.edu',uscId:'8888888888',graduationYear:new Date().getUTCFullYear(),...change};
+  batch.set(doc(db,'users/alice'),data);
+  batch.set(doc(db,'publicProfiles/alice'),{fullName:'Alice',displayName:'Alice'});
+  batch.set(doc(db,'uscIdReservations/8888888888'),{uid:'alice'});
+  await assertFails(batch.commit());
+ }
+});
+
+test('ride creation rejects forged or malformed participant and metadata contracts',async()=>{
+ const db=await register('alice');
+ for(const change of [{participants:[{userId:'alice',displayName:'Forged',acceptedAt:new Date()}]},
+  {participants:[{userId:'alice',displayName:42,acceptedAt:'bad'}]}, {note:42}, {extra:'field'}, {participantIds:[]}])
+  await assertFails(setDoc(doc(db,'rides/malformed'),{...ride(),...change}));
+ const missing=ride();delete missing.participantIds;
+ await assertFails(setDoc(doc(db,'rides/malformed'),missing));
+ // Valid addresses need not fit the 100-character nickname limit.
+ await assertSucceeds(setDoc(doc(db,'rides/long-address'),{...ride(),origin:{...ride().origin,address:'A'.repeat(150)}}));
 });

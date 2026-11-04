@@ -1,73 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
-
-        <!-- Public profile title -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="Rider Profile"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-
-        <!-- Public nickname -->
-        <TextView
-            android:id="@+id/publicProfileNickname"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <!-- Public full name -->
-        <TextView
-            android:id="@+id/publicProfileName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textSize="16sp" />
-
-        <!-- Existing status placeholder -->
-        <TextView
-            android:id="@+id/publicProfilePaymentStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Payment status: Not available yet" />
-
-        <!-- Publicly shared rides -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:text="Shared Rides"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/publicProfileSharedRides"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Loading shared rides..."
-            android:textSize="15sp" />
-
-        <!-- Loading and error messages -->
-        <TextView
-            android:id="@+id/publicProfileMessage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:accessibilityLiveRegion="polite" />
-
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="@color/app_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Rider Profile" android:textAppearance="@style/TextAppearance.Trojan.Title" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Get to know your fellow rider." android:textAppearance="@style/TextAppearance.Trojan.Subtitle" android:layout_marginBottom="24dp" />
+        <TextView android:id="@+id/publicProfileNickname" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="22sp" android:textStyle="bold" />
+        <TextView android:id="@+id/publicProfileName" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textSize="16sp" />
+        <TextView android:id="@+id/publicProfilePaymentStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Payment status: Not available yet" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:text="Shared Rides" android:textSize="20sp" android:textStyle="bold" />
+        <TextView android:id="@+id/publicProfileSharedRides" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Loading shared rides..." android:textSize="15sp" />
+        <TextView android:id="@+id/publicProfileMessage" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:accessibilityLiveRegion="polite" />
     </LinearLayout>
-
 </ScrollView>
