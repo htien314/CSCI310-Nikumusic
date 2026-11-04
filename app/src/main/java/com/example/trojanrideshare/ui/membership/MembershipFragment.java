@@ -24,7 +24,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.functions.FirebaseFunctions;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -44,7 +43,7 @@ public final class MembershipFragment extends Fragment {
             @NonNull @Override @SuppressWarnings("unchecked")
             public <T extends ViewModel> T create(@NonNull Class<T> type) {
                 return (T) new MembershipViewModel(new FirebaseJoinRequestRepository(
-                        FirebaseFirestore.getInstance(), FirebaseFunctions.getInstance("us-central1")));
+                        FirebaseFirestore.getInstance()));
             }
         }).get(MembershipViewModel.class);
         content = view.findViewById(R.id.membership_content);

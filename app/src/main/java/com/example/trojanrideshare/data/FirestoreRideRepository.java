@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.example.trojanrideshare.model.ActivityStatus;
 import com.example.trojanrideshare.model.Ride;
+import com.example.trojanrideshare.service.MembershipTransition;
 import com.example.trojanrideshare.util.Callback;
 import com.example.trojanrideshare.util.Constants;
 import com.google.firebase.firestore.CollectionReference;
@@ -81,11 +82,9 @@ public class FirestoreRideRepository implements RideRepository {
     }
 
     @Override public void cancel(String rideId, RideMutation validation, Callback<Ride> callback) {
-        java.util.Map<String, Object> data = new java.util.HashMap<>();
-        data.put("action", "cancelRide"); data.put("rideId", rideId);
-        com.google.firebase.functions.FirebaseFunctions.getInstance("us-central1")
-                .getHttpsCallable("membership").call(data)
-                .addOnSuccessListener(result -> getById(rideId, callback))
+        // Cancelling also closes pending requests, so it runs as a membership transaction.
+        new MembershipTransactions(db).run(MembershipTransition.CANCEL_RIDE, rideId, null, null)
+                .addOnSuccessListener(unused -> getById(rideId, callback))
                 .addOnFailureListener(callback::onError);
     }
 
