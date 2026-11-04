@@ -8,6 +8,12 @@ Android app (Java, XML layouts, Jetpack Navigation, Firebase Auth + Cloud Firest
 3. Location search uses Android's Geocoder and needs no API key. Use a Google APIs or Google Play emulator image; see [location setup](docs/nikhil-search-locations.md). A Places key would only be needed if the team switches adapters later.
 4. Sync Gradle, then run on an emulator (min SDK 26).
 
+## Full local demo on Spark
+
+The team is keeping the shared Firebase project on Spark for now. For the full integrated workflow without enabling billing, follow [local Android testing and demo setup](docs/local-device-testing.md): run `npm run test:device` in `functions/`, then `npm run demo:local` after it passes. This installs a separate local-test app and keeps your normal app/account intact.
+
+The normal Android build still points at the shared Firebase project and needs the deployed backend for the complete workflow. Local demo users and rides appear in the local emulator dashboard, not the live Firebase console.
+
 ## Project structure (`app/src/main/java/com/example/trojanrideshare`)
 | Package | What goes there |
 |---|---|

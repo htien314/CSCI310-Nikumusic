@@ -24,7 +24,17 @@ Branch: `integration/full-app`, built on `integration/ada-riya-nikhil` (`7a2c7c8
 - One complete multi-account workflow passed through the real Firebase JavaScript SDK and local Auth, Firestore and Functions HTTP endpoints. It covers signup, duplicate ID errors, search, requests, last-seat rejection, leaving, organizer transfer, completion, flags, paying, sign-out/sign-in persistence, cancellation and share/revoke privacy. The migration dry run and explicit apply path were also checked against local data.
 - The tests use disposable local demo projects and do not alter the shared Firebase database. Deliberate permission-denied logs are expected in permission tests.
 
-The network workflow uses local emulator endpoints, not the shared Firebase deployment. Android device navigation is verified separately; the entire multi-account workflow has not yet been exercised through every Android form. The host used Node 24 for local tests; deployment remains configured for Node 22.
+The network workflow uses local emulator endpoints, not the shared Firebase deployment. Android device navigation is verified separately; the full local Android workflow is now verified separately through the main forms, including real geocoding, three accounts, cancellation and a full process restart. Advanced custom-split UI and device-level network interruption remain separate checks. The host used Node 24 for local tests; deployment remains configured for Node 22.
+
+## Full Android device verification
+
+On November 3, 2026, `npm run test:device` passed both phases against isolated demo emulators: the complete three-account form/navigation workflow, and sign-in/request persistence after force-stopping and restarting the app. Real USC/LAX geocoding, requests, last-seat rejection, leaving/rejoining, actual-cost completion, flags, payment, history, monthly summary and cancellation were exercised through Android screens.
+
+This found and fixed a privacy/navigation edge: a rejected student could see “Loading ride” indefinitely after cancellation made the ride private. The app now displays the student's own request status and recent rejected/cancelled request updates without relaxing ride read permissions. Android unit tests, normal debug build and lint also passed after the fix.
+
+## Local demo decision
+
+The team chose to retain Spark and continue local testing without billing. Use [the isolated Android device workflow and demo](local-device-testing.md). The live setup was audited read-only; no live deployment, migration, or billing change was performed. Live readiness remains a separate checkpoint.
 
 ## Required Firebase setup before the full live flow works
 
@@ -71,7 +81,7 @@ npm run test:network
 cd integration-tests && npm test
 ```
 
-## Remaining full-device demo
+## Manual/demo follow-up checks
 
 1. With the required backend deployed (or local emulators running), register three distinct USC users. Verify duplicate USC IDs are rejected without partial profiles.
 2. Organizer creates a ride. Other students find it through search, view its details/profile, and submit requests. Accept the last seat and confirm automatic rejection of other pending requests on both accounts.
@@ -81,4 +91,4 @@ cd integration-tests && npm test
 6. Sign in as each rider to mark their own share paid. Use test data to verify seven-day overdue flags, public profile flags and clearing flags on payment. Payment status is a record in the app; no financial transfer is implemented.
 7. Test logout/login, back navigation, rotation, app restart and a network interruption. Confirm no prior account’s private profile or stale controls remain visible.
 
-No full-device, multi-account demo or live-project end-to-end result is claimed until the above checks are performed.
+The main multi-account Android flow above is verified locally. No live-project end-to-end result is claimed. Continue with advanced custom-split UI, concurrent physical devices and device-level network interruption as needed for the team demo.

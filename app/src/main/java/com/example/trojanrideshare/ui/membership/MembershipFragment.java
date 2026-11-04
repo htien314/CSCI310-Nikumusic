@@ -85,7 +85,7 @@ public final class MembershipFragment extends Fragment {
         if (rides == null) return;
         if (rideId != null) {
             Ride ride = findRide(rideId);
-            if (ride == null) { text("Loading ride… If it does not appear, refresh or return to your rides."); return; }
+            if (ride == null) { showUnavailableRequest(); return; }
             showRide(ride); return;
         }
         model.watchInbox(null);
@@ -106,11 +106,37 @@ public final class MembershipFragment extends Fragment {
                     () -> model.act("cancel", request.getRideId(), null, null))); count++;
         }
         if (count == 0) text("You have no pending requests.");
+        heading("Request updates"); count = 0;
+        for (JoinRequest request : sorted(model.getMine().getValue())) {
+            if (request.getStatus() != JoinRequest.Status.REJECTED
+                    && request.getStatus() != JoinRequest.Status.CANCELLED) continue;
+            Ride ride = findRide(request.getRideId());
+            text((ride == null ? "Ride request" : ride.getTitle()) + " · " + label(request.getStatus().name()));
+            button("View request status", () -> open(request.getRideId()));
+            if (++count == 10) break;
+        }
+        if (count == 0) text("No recent request updates.");
         // A quick entry point complements the full ride search.
         heading("Open rides to request"); count = 0;
         for (Ride ride : rides) if (!ride.isFinished() && beforeDeparture(ride) && !ride.isOrganizer(model.getUserId())
                 && !isMember(ride) && ride.getAvailableSeats() > 0) { rideLink(ride); count++; }
         if (count == 0) text("There are no other open rides right now.");
+    }
+    private void showUnavailableRequest() {
+        model.watchInbox(null);
+        heading("Ride request");
+        JoinRequest own = null;
+        for (JoinRequest request : sorted(model.getMine().getValue())) {
+            if (rideId.equals(request.getRideId())) { own = request; break; }
+        }
+        if (own != null) {
+            text("Your request: " + label(own.getStatus().name()) + " · " + time(own.getCreatedAt()));
+        }
+        text("This ride is not available in your current list. You can still review your own request status.");
+        button("Back to My Rides", () -> {
+            androidx.navigation.NavController nav = NavHostFragment.findNavController(this);
+            if (!nav.popBackStack(R.id.myRidesFragment, false)) nav.navigate(R.id.myRidesFragment);
+        });
     }
     private void showRide(Ride ride) {
         button("Ride details and payments", () -> {

@@ -8,7 +8,9 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "test:emulator": "cd .. && functions/node_modules/.bin/firebase emulators:exec --project demo-trojan-membership --only firestore 'cd functions && node --test test/emulator.test.js'",
-    "test:network": "cd .. && functions/node_modules/.bin/firebase emulators:exec --project demo-trojan-network --only auth,firestore,functions 'node --test functions/test/network/*.test.js'"
+    "test:network": "cd .. && functions/node_modules/.bin/firebase emulators:exec --project demo-trojan-network --only auth,firestore,functions 'node --test functions/test/network/*.test.js'",
+    "test:device": "node test/device/verify.cjs",
+    "demo:local": "node test/device/demo.cjs"
   },
   "dependencies": {
     "firebase-admin": "^14.5.0",
