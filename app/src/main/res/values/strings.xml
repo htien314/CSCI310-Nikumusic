@@ -1,17 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">TrojanRideShare</string>
-
-    <!-- Bottom navigation -->
-    <string name="tab_search">Search</string>
-    <string name="tab_create">Create</string>
+    <string name="tab_search">Find rides</string>
+    <string name="tab_create">Post ride</string>
     <string name="tab_my_rides">My Rides</string>
     <string name="tab_profile">Profile</string>
-
-    <!-- Shared -->
     <string name="retry">Retry</string>
     <string name="placeholder_owner">Coming soon (owner: %1$s)</string>
-
-    <!-- Create ride -->
     <string name="create_ride_heading">Post a ride</string>
     <string name="create_ride_title">Title</string>
     <string name="create_ride_origin">Origin</string>
@@ -23,8 +18,6 @@
     <string name="create_ride_cost">Expected total cost</string>
     <string name="create_ride_note">Note (optional)</string>
     <string name="create_ride_submit">Create ride</string>
-
-    <!-- Ride details -->
     <string name="ride_details_activity">Status</string>
     <string name="ride_details_capacity">Capacity</string>
     <string name="ride_details_departure">Departure (Los Angeles time)</string>

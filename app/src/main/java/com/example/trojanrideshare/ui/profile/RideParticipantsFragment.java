@@ -155,7 +155,7 @@ public class RideParticipantsFragment extends Fragment {
             String displayName,
             String riderUid) {
 
-        Button button = new Button(requireContext());
+        Button button = new com.google.android.material.button.MaterialButton(requireContext());
 
         button.setText(displayName);
         button.setAllCaps(false);

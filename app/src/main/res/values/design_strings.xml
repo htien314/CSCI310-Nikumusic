@@ -1,0 +1,30 @@
+<resources>
+ <string name="brand_name">TrojanRideShare</string><string name="brand_tagline">USC STUDENT RIDES</string>
+ <string name="navigate_back">Go back</string><string name="design_filters">Date, time &amp; seats</string>
+ <string name="design_filters_hide">Hide date, time &amp; seats</string>
+ <string name="design_welcome">Your campus.
+Your people.
+Your next ride.</string>
+ <string name="design_welcome_body">Split the journey with fellow Trojans.</string>
+ <string name="design_how_it_works">1  Find a ride     2  Join your group     3  Share the cost</string>
+ <string name="design_login_intro">Welcome back, Trojan.</string>
+ <string name="design_signup_intro">A little about you. Then you are ready to ride.</string>
+ <string name="design_search_intro">Where are we headed?</string>
+ <string name="design_search_body">Find fellow Trojans going your way.</string>
+ <string name="design_post_intro">Good plans start here.</string>
+ <string name="design_post_body">Post your trip. Let your people find you.</string>
+ <string name="design_profile_intro">Your Trojan travel hub.</string>
+ <string name="design_membership_intro">Your rides, requests and next steps, all together.</string>
+ <string name="design_history_intro">Every journey, neatly in one place.</string>
+ <string name="design_riders_intro">Meet the people sharing your journey.</string>
+ <string name="design_profile_public_intro">A familiar face for your next ride.</string>
+ <string name="design_split_intro">Review every share before you finish.</string>
+ <string name="design_payments_intro">Who owes what. Clear and simple.</string>
+ <string name="design_summary_intro">Your month on the move.</string>
+ <string name="design_post_route">1. Plan your route</string><string name="design_post_when">2. Pick your departure</string>
+ <string name="design_post_group">3. Set your group and cost</string>
+ <string name="design_signup_note">Use your USC email and 10-digit student ID. Your email and ID stay private.</string>
+ <string name="design_grad_hint">Current year through the next 6 years</string>
+ <string name="design_login_note">Use your existing account. New here? Create an account below.</string>
+ <string name="design_payment_note">Payments are records only. This app does not move money.</string>
+</resources>

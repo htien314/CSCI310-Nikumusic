@@ -219,13 +219,27 @@ public final class MembershipFragment extends Fragment {
         result.sort(Comparator.comparing(JoinRequest::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
         return result;
     }
-    private void heading(String value) { TextView view = text(value); view.setTextSize(20); view.setPadding(0, 24, 0, 8); }
+    private void heading(String value) { com.example.trojanrideshare.ui.common.UiPolish.heading(text(value)); }
     private TextView text(String value) {
         TextView view = new TextView(requireContext()); view.setText(value); view.setTextSize(16); view.setPadding(0, 6, 0, 6);
         content.addView(view); return view;
     }
     private void button(String title, Runnable action) {
-        Button button = new Button(requireContext()); button.setText(title); button.setMinHeight(48);
+        Button button = new com.google.android.material.button.MaterialButton(requireContext()); button.setText(title);
+        int height = com.example.trojanrideshare.ui.common.UiPolish.dp(button, 56);
+        button.setMinHeight(height);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.bottomMargin = com.example.trojanrideshare.ui.common.UiPolish.dp(button, 8);
+        button.setLayoutParams(params);
+        if (!title.startsWith("Accept ") && !title.equals("Request to join") && !title.equals("Log in")) {
+            com.google.android.material.button.MaterialButton material = (com.google.android.material.button.MaterialButton) button;
+            material.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_surface)));
+            material.setStrokeColorResource(R.color.app_line);
+            material.setStrokeWidth(com.example.trojanrideshare.ui.common.UiPolish.dp(button, 1));
+            material.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_primary));
+        }
         button.setEnabled(!Boolean.TRUE.equals(model.getBusy().getValue()));
         button.setOnClickListener(view -> action.run()); content.addView(button);
     }

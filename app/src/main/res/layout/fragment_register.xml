@@ -1,82 +1,155 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
-
+    android:fillViewport="true"
+    android:background="@color/app_background"
+    android:clipToPadding="false">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
-
+        android:padding="20dp">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Create Account"
-            android:textSize="26sp"
+            android:textSize="30sp"
             android:textStyle="bold"
-            android:layout_marginBottom="20dp"/>
-
-        <EditText
-            android:id="@+id/inputFullName"
+            android:layout_marginBottom="6dp"
+            android:lineSpacingExtra="3dp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/app_ink"
+            android:accessibilityHeading="true" />
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Full Name"
-            android:inputType="textPersonName"/>
-
-        <EditText
-            android:id="@+id/inputNickname"
+            android:text="@string/design_signup_intro"
+            android:textSize="15sp"
+            android:textColor="@color/app_muted"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginBottom="20dp" />
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nickname (optional)"
-            android:inputType="textPersonName"/>
-
-        <EditText
-            android:id="@+id/inputEmail"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.Trojan.Input"
+            android:hint="Full Name">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputFullName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName"
+                android:minHeight="56dp"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="USC Email"
-            android:inputType="textEmailAddress"/>
-
-        <EditText
-            android:id="@+id/inputUscId"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.Trojan.Input"
+            android:hint="Nickname (optional)">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputNickname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName"
+                android:minHeight="56dp"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="10-digit USC ID"
-            android:inputType="number"
-            android:maxLength="10"/>
-
-        <EditText
-            android:id="@+id/inputGraduationYear"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.Trojan.Input"
+            android:hint="USC Email">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress"
+                android:minHeight="56dp"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.Trojan.Input"
+            android:hint="10-digit USC ID">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputUscId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:maxLength="10"
+                android:minHeight="56dp"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.Trojan.Input"
             android:hint="Expected Graduation Year"
-            android:inputType="number"
-            android:maxLength="4"/>
-
-        <EditText
-            android:id="@+id/inputPassword"
+            app:helperText="@string/design_grad_hint">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputGraduationYear"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:maxLength="4"
+                android:minHeight="56dp"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.Trojan.Input"
             android:hint="Password"
-            android:inputType="textPassword"/>
-
-        <Button
+            app:endIconMode="password_toggle">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:minHeight="56dp"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonRegister"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Create Account"
-            android:layout_marginTop="24dp"/>
-
+            android:layout_marginTop="24dp"
+            style="@style/Widget.Trojan.Button"
+            android:minHeight="56dp"
+            android:textAllCaps="false" />
         <TextView
             android:id="@+id/textRegistrationError"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#B3261E"
+            android:textColor="@color/app_error"
             android:layout_marginTop="12dp"
-            android:accessibilityLiveRegion="polite"/>
-
+            android:accessibilityLiveRegion="polite"
+            android:lineSpacingExtra="3dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/design_signup_note"
+            android:textSize="14sp"
+            android:textColor="@color/app_muted"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="12dp" />
     </LinearLayout>
 </ScrollView>

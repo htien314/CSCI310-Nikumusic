@@ -1,5 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+ <color name="black">#191A1C</color><color name="white">#FFFFFF</color>
+ <color name="usc_cardinal">#990000</color><color name="usc_gold">#FFCC00</color>
+ <color name="app_primary">#990000</color><color name="app_on_primary">#FFFFFF</color>
+ <color name="app_background">#F8F6F1</color><color name="app_surface">#FFFFFF</color>
+ <color name="app_ink">#242220</color><color name="app_muted">#68615B</color>
+ <color name="app_line">#DED8CE</color><color name="app_soft">#FFF0C2</color>
+ <color name="app_tint">#F9E7E3</color><color name="app_success">#246546</color>
+ <color name="app_error">#AA2920</color>
 </resources>

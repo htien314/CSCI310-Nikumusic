@@ -484,7 +484,7 @@ public class ProfileFragment extends Fragment {
             checkbox.setChecked(sharedIds.contains(rideId));
 
             container.addView(checkbox);
-            Button details = new Button(requireContext());
+            Button details = new com.google.android.material.button.MaterialButton(requireContext());
             details.setText(R.string.profile_open_ride_details);
             details.setOnClickListener(v -> {
                 if (!isCurrentUser(view, uid)) return;

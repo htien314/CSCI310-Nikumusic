@@ -1,61 +1,64 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- One ride in the search results. Filled in by SearchFragment. -->
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    style="@style/Widget.Material3.CardView.Outlined"
+<?xml version='1.0' encoding='utf-8'?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.Trojan.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
+    android:layout_marginBottom="14dp"
     android:clickable="true"
     android:focusable="true">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
-
+        android:padding="18dp">
         <TextView
             android:id="@+id/result_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
-
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:lineSpacingExtra="3dp"
+            android:textSize="21sp"
+            android:fontFamily="sans-serif-medium" />
         <TextView
             android:id="@+id/result_departure"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium" />
-
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:id="@+id/result_origin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium" />
-
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:id="@+id/result_destination"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium" />
-
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:id="@+id/result_seats_cost"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textAppearance="?attr/textAppearanceLabelLarge" />
-
-        <Button
+            android:layout_marginTop="12dp"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:lineSpacingExtra="3dp"
+            android:background="@drawable/bg_soft"
+            android:padding="10dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/request_button"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
+            style="@style/Widget.Trojan.Button"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="4dp"
-            android:text="@string/search_request_to_join" />
-
+            android:text="@string/search_request_to_join"
+            android:minHeight="56dp"
+            android:textAllCaps="false" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

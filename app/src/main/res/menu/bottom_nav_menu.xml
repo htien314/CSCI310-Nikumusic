@@ -1,20 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Item ids must match destination ids in nav_graph.xml -->
+<?xml version='1.0' encoding='utf-8'?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/searchFragment"
-        android:icon="@android:drawable/ic_menu_search"
-        android:title="@string/tab_search" />
-    <item
-        android:id="@+id/createRideFragment"
-        android:icon="@android:drawable/ic_menu_add"
-        android:title="@string/tab_create" />
-    <item
-        android:id="@+id/myRidesFragment"
-        android:icon="@android:drawable/ic_menu_agenda"
-        android:title="@string/tab_my_rides" />
-    <item
-        android:id="@+id/profileFragment"
-        android:icon="@android:drawable/ic_menu_myplaces"
-        android:title="@string/tab_profile" />
+    <item android:id="@+id/searchFragment" android:icon="@drawable/ic_find" android:title="@string/tab_search" />
+    <item android:id="@+id/createRideFragment" android:icon="@drawable/ic_post" android:title="@string/tab_create" />
+    <item android:id="@+id/myRidesFragment" android:icon="@drawable/ic_rides" android:title="@string/tab_my_rides" />
+    <item android:id="@+id/profileFragment" android:icon="@drawable/ic_profile" android:title="@string/tab_profile" />
 </menu>

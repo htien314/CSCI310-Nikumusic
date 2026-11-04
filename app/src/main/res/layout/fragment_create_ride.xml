@@ -1,153 +1,225 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:text="@string/create_ride_heading"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/create_ride_title">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/title_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapSentences"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/create_ride_origin">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/origin_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPostalAddress"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/create_ride_destination">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/destination_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPostalAddress"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView
+    xmlns:ns0="http://schemas.android.com/apk/res/android"
+    xmlns:ns1="http://schemas.android.com/apk/res-auto"
+    ns0:layout_width="match_parent"
+    ns0:layout_height="match_parent"
+    ns0:background="@color/app_background"
+    ns0:fillViewport="true"
+    ns0:clipToPadding="false">
+    <LinearLayout ns0:layout_width="match_parent" ns0:layout_height="wrap_content" ns0:orientation="vertical" ns0:padding="20dp">
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/date_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="3"
-                android:text="@string/create_ride_choose_date" />
-
-            <Button
-                android:id="@+id/time_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text="@string/create_ride_choose_time" />
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:orientation="horizontal"
+            ns0:background="@drawable/bg_brand"
+            ns0:padding="20dp"
+            ns0:gravity="center_vertical"
+            ns0:layout_marginBottom="20dp">
+            <LinearLayout
+                ns0:layout_width="0dp"
+                ns0:layout_height="wrap_content"
+                ns0:layout_weight="1"
+                ns0:orientation="vertical">
+                <TextView
+                    ns0:layout_width="match_parent"
+                    ns0:layout_height="wrap_content"
+                    ns0:text="MOVE TOGETHER"
+                    ns0:textSize="10sp"
+                    ns0:textColor="@color/usc_gold"
+                    ns0:lineSpacingExtra="3dp"
+                    ns0:letterSpacing="0.18"
+                    ns0:fontFamily="sans-serif-medium"
+                    ns0:layout_marginBottom="12dp" />
+                <TextView
+                    ns0:layout_width="match_parent"
+                    ns0:layout_height="wrap_content"
+                    ns0:text="@string/design_post_intro"
+                    ns0:textSize="27sp"
+                    ns0:textColor="@color/white"
+                    ns0:fontFamily="serif"
+                    ns0:lineSpacingExtra="1dp" />
+                <TextView
+                    ns0:layout_width="match_parent"
+                    ns0:layout_height="wrap_content"
+                    ns0:text="@string/design_post_body"
+                    ns0:textSize="14sp"
+                    ns0:textColor="@color/white"
+                    ns0:lineSpacingExtra="3dp"
+                    ns0:layout_marginTop="10dp" />
+            </LinearLayout>
+            <ImageView
+                ns0:layout_width="72dp"
+                ns0:layout_height="108dp"
+                ns0:src="@drawable/hero_route"
+                ns0:contentDescription="@null"
+                ns0:importantForAccessibility="no"
+                ns0:layout_marginStart="4dp" />
         </LinearLayout>
-
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="@string/create_ride_time_zone"
-            android:textAppearance="?attr/textAppearanceBodySmall" />
-
+            ns0:layout_width="wrap_content"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="16dp"
+            ns0:text="@string/create_ride_heading"
+            ns0:textAppearance="?attr/textAppearanceHeadlineSmall"
+            ns0:lineSpacingExtra="3dp"
+            ns0:textSize="26sp"
+            ns0:fontFamily="sans-serif-medium"
+            ns0:accessibilityHeading="true" />
+        <TextView
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:text="@string/design_post_route"
+            ns0:textSize="16sp"
+            ns0:textColor="@color/app_ink"
+            ns0:lineSpacingExtra="3dp"
+            ns0:fontFamily="sans-serif-medium"
+            ns0:layout_marginTop="12dp"
+            ns0:layout_marginBottom="12dp" />
+        <com.google.android.material.textfield.TextInputLayout
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="12dp"
+            ns0:hint="@string/create_ride_title">
+            <com.google.android.material.textfield.TextInputEditText
+                ns0:id="@+id/title_input"
+                ns0:layout_width="match_parent"
+                ns0:layout_height="wrap_content"
+                ns0:inputType="textCapSentences"
+                ns0:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="12dp"
+            ns0:hint="@string/create_ride_origin">
+            <com.google.android.material.textfield.TextInputEditText
+                ns0:id="@+id/origin_input"
+                ns0:layout_width="match_parent"
+                ns0:layout_height="wrap_content"
+                ns0:inputType="textPostalAddress"
+                ns0:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="12dp"
+            ns0:hint="@string/create_ride_destination">
+            <com.google.android.material.textfield.TextInputEditText
+                ns0:id="@+id/destination_input"
+                ns0:layout_width="match_parent"
+                ns0:layout_height="wrap_content"
+                ns0:inputType="textPostalAddress"
+                ns0:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <TextView
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:text="@string/design_post_when"
+            ns0:textSize="16sp"
+            ns0:textColor="@color/app_ink"
+            ns0:lineSpacingExtra="3dp"
+            ns0:fontFamily="sans-serif-medium"
+            ns0:layout_marginTop="12dp"
+            ns0:layout_marginBottom="12dp" />
+        <LinearLayout ns0:layout_width="match_parent" ns0:layout_height="wrap_content" ns0:orientation="horizontal">
+            <com.google.android.material.button.MaterialButton
+                ns0:id="@+id/date_button"
+                style="@style/Widget.Trojan.Secondary"
+                ns0:layout_width="0dp"
+                ns0:layout_height="wrap_content"
+                ns0:layout_marginEnd="8dp"
+                ns0:layout_weight="3"
+                ns0:text="@string/create_ride_choose_date"
+                ns0:minHeight="56dp"
+                ns0:textAllCaps="false"
+                ns0:layout_marginTop="4dp" />
+            <com.google.android.material.button.MaterialButton
+                ns0:id="@+id/time_button"
+                style="@style/Widget.Trojan.Secondary"
+                ns0:layout_width="0dp"
+                ns0:layout_height="wrap_content"
+                ns0:layout_weight="2"
+                ns0:text="@string/create_ride_choose_time"
+                ns0:minHeight="56dp"
+                ns0:textAllCaps="false"
+                ns0:layout_marginTop="4dp" />
+        </LinearLayout>
+        <TextView
+            ns0:layout_width="wrap_content"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="12dp"
+            ns0:text="@string/create_ride_time_zone"
+            ns0:textAppearance="?attr/textAppearanceBodySmall"
+            ns0:lineSpacingExtra="3dp" />
+        <TextView
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:text="@string/design_post_group"
+            ns0:textSize="16sp"
+            ns0:textColor="@color/app_ink"
+            ns0:lineSpacingExtra="3dp"
+            ns0:fontFamily="sans-serif-medium"
+            ns0:layout_marginTop="12dp"
+            ns0:layout_marginBottom="12dp" />
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="12dp"
+            ns0:gravity="center_vertical"
+            ns0:orientation="horizontal">
             <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/create_ride_max_riders"
-                android:textAppearance="?attr/textAppearanceBodyLarge" />
-
+                ns0:layout_width="0dp"
+                ns0:layout_height="wrap_content"
+                ns0:layout_weight="1"
+                ns0:text="@string/create_ride_max_riders"
+                ns0:textAppearance="?attr/textAppearanceBodyLarge"
+                ns0:lineSpacingExtra="3dp" />
             <Spinner
-                android:id="@+id/max_riders_spinner"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp" />
+                ns0:id="@+id/max_riders_spinner"
+                ns0:layout_width="wrap_content"
+                ns0:layout_height="52dp"
+                ns0:background="@drawable/bg_card"
+                ns0:paddingStart="12dp"
+                ns0:paddingEnd="12dp"
+                ns0:minHeight="52dp"
+                ns0:layout_marginBottom="8dp" />
         </LinearLayout>
-
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/create_ride_cost"
-            app:prefixText="$">
-
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="12dp"
+            ns0:hint="@string/create_ride_cost"
+            ns1:prefixText="$">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/cost_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal"
-                android:maxLines="1" />
+                ns0:id="@+id/cost_input"
+                ns0:layout_width="match_parent"
+                ns0:layout_height="wrap_content"
+                ns0:inputType="numberDecimal"
+                ns0:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
-
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/create_ride_note">
-
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:layout_marginBottom="12dp"
+            ns0:hint="@string/create_ride_note">
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/note_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="top"
-                android:inputType="textMultiLine|textCapSentences"
-                android:minLines="2" />
+                ns0:id="@+id/note_input"
+                ns0:layout_width="match_parent"
+                ns0:layout_height="wrap_content"
+                ns0:gravity="top"
+                ns0:inputType="textMultiLine|textCapSentences"
+                ns0:minLines="2" />
         </com.google.android.material.textfield.TextInputLayout>
-
-        <include
-            android:id="@+id/loading_error"
-            layout="@layout/view_loading_error" />
-
-        <Button
-            android:id="@+id/create_button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/create_ride_submit" />
-
+        <include ns0:id="@+id/loading_error" layout="@layout/view_loading_error" />
+        <com.google.android.material.button.MaterialButton
+            ns0:id="@+id/create_button"
+            ns0:layout_width="match_parent"
+            ns0:layout_height="wrap_content"
+            ns0:text="@string/create_ride_submit"
+            style="@style/Widget.Trojan.Button"
+            ns0:minHeight="56dp"
+            ns0:textAllCaps="false"
+            ns0:layout_marginTop="4dp" />
     </LinearLayout>
 </ScrollView>

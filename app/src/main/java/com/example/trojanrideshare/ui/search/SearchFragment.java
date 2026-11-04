@@ -115,6 +115,18 @@ public class SearchFragment extends Fragment {
         searchButton.setOnClickListener(v -> submit());
         clearSearchButton.setOnClickListener(v -> viewModel.browse(currentUserId()));
 
+        View filterPanel = view.findViewById(R.id.search_filter_panel);
+        Button filterToggle = view.findViewById(R.id.search_more_filters);
+        boolean expanded = savedInstanceState != null && savedInstanceState.getBoolean("filtersExpanded");
+        filterPanel.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        filterToggle.setText(expanded ? R.string.design_filters_hide : R.string.design_filters);
+        filterToggle.setOnClickListener(v -> {
+            boolean show = filterPanel.getVisibility() != View.VISIBLE;
+            filterPanel.setVisibility(show ? View.VISIBLE : View.GONE);
+            filterToggle.setText(show ? R.string.design_filters_hide : R.string.design_filters);
+            androidx.core.view.ViewCompat.setStateDescription(filterToggle, show ? "Expanded" : "Collapsed");
+        });
+
         LoadingErrorView loadingError = new LoadingErrorView(view.findViewById(R.id.loading_error), this::retry);
 
         viewModel.getDate().observe(getViewLifecycleOwner(), date -> dateButton.setText(
@@ -141,6 +153,15 @@ public class SearchFragment extends Fragment {
         super.onResume();
         // Bottom-navigation state can survive a trip to Profile to switch accounts.
         viewModel.start(currentUserId());
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        View view = getView();
+        if (view != null) {
+            outState.putBoolean("filtersExpanded", view.findViewById(R.id.search_filter_panel).getVisibility() == View.VISIBLE);
+        }
     }
 
     private void setUpSeatsSpinner() {

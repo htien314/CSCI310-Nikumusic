@@ -1,32 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
+    android:layout_height="match_parent"
+    android:background="@color/app_background"
+    android:fillViewport="true"
+    android:clipToPadding="false">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
-
-        <include
-            android:id="@+id/loading_error"
-            layout="@layout/view_loading_error" />
-
+        android:padding="20dp">
+        <include android:id="@+id/loading_error" layout="@layout/view_loading_error" />
         <LinearLayout
             android:id="@+id/ride_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
-
             <TextView
                 android:id="@+id/ride_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall" />
-
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:lineSpacingExtra="3dp" />
             <include android:id="@+id/row_activity" layout="@layout/view_ride_detail_row" />
             <include android:id="@+id/row_capacity" layout="@layout/view_ride_detail_row" />
             <include android:id="@+id/row_departure" layout="@layout/view_ride_detail_row" />
@@ -37,16 +35,24 @@
             <include android:id="@+id/row_organizer" layout="@layout/view_ride_detail_row" />
             <include android:id="@+id/row_riders" layout="@layout/view_ride_detail_row" />
             <include android:id="@+id/row_note" layout="@layout/view_ride_detail_row" />
-
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/ride_participants_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/ride_open_participants" />
-
-            <Button android:id="@+id/ride_membership_button"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/full_app_membership" />
+                android:text="@string/ride_open_participants"
+                style="@style/Widget.Trojan.Secondary"
+                android:minHeight="56dp"
+                android:textAllCaps="false"
+                android:layout_marginTop="4dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/ride_membership_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/full_app_membership"
+                style="@style/Widget.Trojan.Button"
+                android:minHeight="56dp"
+                android:textAllCaps="false"
+                android:layout_marginTop="4dp" />
             <LinearLayout
                 android:id="@+id/organizer_controls"
                 android:layout_width="match_parent"
@@ -54,56 +60,61 @@
                 android:layout_marginTop="8dp"
                 android:orientation="vertical"
                 android:visibility="gone">
-
                 <TextView
                     android:id="@+id/action_error"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:textColor="?attr/colorError"
-                    android:visibility="gone" />
-
-                <Button
+                    android:visibility="gone"
+                    android:lineSpacingExtra="3dp" />
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/delay_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-
-                <Button
-                    android:id="@+id/on_time_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Trojan.Secondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/ride_details_mark_on_time" />
-
-                <Button
+                    android:minHeight="56dp"
+                    android:textAllCaps="false"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/on_time_button"
+                    style="@style/Widget.Trojan.Secondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ride_details_mark_on_time"
+                    android:minHeight="56dp"
+                    android:textAllCaps="false"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/cancel_button"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Trojan.Secondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/ride_details_cancel"
-                    android:textColor="?attr/colorError" />
-
-                <!-- Organizer can complete the ride after departure. -->
-                <Button
+                    android:minHeight="56dp"
+                    android:textAllCaps="false"
+                    android:layout_marginTop="4dp" />
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/complete_ride_button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:text="Complete Ride"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    style="@style/Widget.Trojan.Button"
+                    android:minHeight="56dp"
+                    android:textAllCaps="false" />
             </LinearLayout>
-
-            <!-- View payment records for a completed ride. -->
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/view_payments_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.Trojan.Secondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="View Payments"
-                android:visibility="gone" />
-
+                android:visibility="gone"
+                android:minHeight="56dp"
+                android:textAllCaps="false" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

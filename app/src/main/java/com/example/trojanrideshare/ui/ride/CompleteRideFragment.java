@@ -312,8 +312,8 @@ public class CompleteRideFragment extends Fragment {
                 row.setText(entry.getKey() + "  •  "
                         + dollars(entry.getValue()));
                 row.setTextSize(16);
-                row.setTextColor(0xFF302347);
-                row.setPadding(16, 20, 16, 20);
+                row.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_ink));
+                com.example.trojanrideshare.ui.common.UiPolish.card(row);
                 sharesContainer.addView(row);
             }
 
@@ -344,7 +344,7 @@ public class CompleteRideFragment extends Fragment {
         }
 
         customHint = new TextView(requireContext());
-        customHint.setTextColor(0xFF746985);
+        customHint.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_muted));
         customHint.setPadding(0, 16, 0, 0);
         sharesContainer.addView(customHint);
     }

@@ -1,73 +1,78 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
-
+    android:fillViewport="true"
+    android:background="@color/app_background"
+    android:clipToPadding="false">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
-
-        <!-- Public profile title -->
+        android:padding="20dp">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="6dp"
             android:text="Rider Profile"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-
-        <!-- Public nickname -->
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:lineSpacingExtra="3dp"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/app_ink"
+            android:accessibilityHeading="true" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/design_profile_public_intro"
+            android:textSize="15sp"
+            android:textColor="@color/app_muted"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginBottom="20dp" />
         <TextView
             android:id="@+id/publicProfileNickname"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <!-- Public full name -->
+            android:textStyle="bold"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:id="@+id/publicProfileName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:textSize="16sp" />
-
-        <!-- Existing status placeholder -->
+            android:textSize="16sp"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:id="@+id/publicProfilePaymentStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Payment status: Not available yet" />
-
-        <!-- Publicly shared rides -->
+            android:text="Payment status: Not available yet"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:text="Shared Rides"
             android:textSize="20sp"
-            android:textStyle="bold" />
-
+            android:textStyle="bold"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:id="@+id/publicProfileSharedRides"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="Loading shared rides..."
-            android:textSize="15sp" />
-
-        <!-- Loading and error messages -->
+            android:textSize="15sp"
+            android:lineSpacingExtra="3dp" />
         <TextView
             android:id="@+id/publicProfileMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:accessibilityLiveRegion="polite" />
-
+            android:accessibilityLiveRegion="polite"
+            android:lineSpacingExtra="3dp" />
     </LinearLayout>
-
 </ScrollView>

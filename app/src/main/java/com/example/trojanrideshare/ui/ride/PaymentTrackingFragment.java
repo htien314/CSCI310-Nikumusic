@@ -190,13 +190,13 @@ public class PaymentTrackingFragment extends Fragment {
 
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(16, 20, 16, 20);
+        com.example.trojanrideshare.ui.common.UiPolish.card(row);
 
         TextView nameText = new TextView(requireContext());
         nameText.setText(name + "  •  "
                 + dollars(share.getAmountCents()));
         nameText.setTextSize(17);
-        nameText.setTextColor(0xFF35244F);
+        nameText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_ink));
         row.addView(nameText);
 
         boolean overdue = costService.isPaymentOverdue(
@@ -206,16 +206,16 @@ public class PaymentTrackingFragment extends Fragment {
 
         if (share.isPaid()) {
             statusText.setText("Paid");
-            statusText.setTextColor(0xFF38845E);
+            statusText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_success));
         } else if (share.isFlagged()) {
             statusText.setText("Flagged - payment overdue");
-            statusText.setTextColor(0xFFB3261E);
+            statusText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_error));
         } else if (overdue) {
             statusText.setText("Overdue - payment pending");
-            statusText.setTextColor(0xFFB3261E);
+            statusText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_error));
         } else {
             statusText.setText("Unpaid");
-            statusText.setTextColor(0xFF746985);
+            statusText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.app_muted));
         }
 
         statusText.setPadding(0, 8, 0, 8);
@@ -228,7 +228,7 @@ public class PaymentTrackingFragment extends Fragment {
                 && currentUserId != null
                 && currentUserId.equals(riderId)) {
 
-            Button paidButton = new Button(requireContext());
+            Button paidButton = new com.google.android.material.button.MaterialButton(requireContext());
             paidButton.setText("Mark as paid");
 
             paidButton.setOnClickListener(v -> {
@@ -248,7 +248,7 @@ public class PaymentTrackingFragment extends Fragment {
                 && overdue
                 && ride.isOrganizer(currentUserId)) {
 
-            Button flagButton = new Button(requireContext());
+            Button flagButton = new com.google.android.material.button.MaterialButton(requireContext());
             flagButton.setText("Flag overdue");
 
             flagButton.setOnClickListener(v -> {

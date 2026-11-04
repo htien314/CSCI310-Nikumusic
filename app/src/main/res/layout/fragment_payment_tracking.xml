@@ -1,63 +1,78 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#FBF7FF">
-
+    android:background="@color/app_background"
+    android:clipToPadding="false">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
-
+        android:padding="20dp">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ride payments 💜"
-            android:textSize="28sp"
+            android:text="Ride payments"
+            android:textSize="30sp"
             android:textStyle="bold"
-            android:textColor="#35244F" />
-
+            android:textColor="@color/app_ink"
+            android:lineSpacingExtra="3dp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="6dp"
+            android:accessibilityHeading="true" />
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Keep track of everyone's share!"
+            android:text="@string/design_payments_intro"
             android:textSize="15sp"
-            android:textColor="#746985" />
-
-        <Button
+            android:textColor="@color/app_muted"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginBottom="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonMonthlySummary"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.Trojan.Secondary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="View Monthly Summary" />
-
+            android:text="View Monthly Summary"
+            android:minHeight="56dp"
+            android:textAllCaps="false" />
         <TextView
             android:id="@+id/textPaymentSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:text="Loading payment details..."
-            android:textColor="#35244F"
-            android:textSize="17sp" />
-
+            android:textColor="@color/app_ink"
+            android:textSize="17sp"
+            android:lineSpacingExtra="3dp"
+            android:background="@drawable/bg_soft"
+            android:padding="16dp" />
         <LinearLayout
             android:id="@+id/containerPayments"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:orientation="vertical" />
-
         <TextView
             android:id="@+id/textPaymentError"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:textColor="#B3261E"
-            android:visibility="gone" />
-
+            android:textColor="@color/app_error"
+            android:visibility="gone"
+            android:lineSpacingExtra="3dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/design_payment_note"
+            android:textSize="14sp"
+            android:textColor="@color/app_muted"
+            android:lineSpacingExtra="3dp"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="12dp" />
     </LinearLayout>
 </ScrollView>

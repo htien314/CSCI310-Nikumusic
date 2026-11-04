@@ -1,18 +1,57 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:padding="16dp">
-    <TextView android:id="@+id/membership_title" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="@string/membership_title"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
-    <TextView android:id="@+id/membership_notice" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" android:paddingVertical="8dp" />
-    <ProgressBar android:id="@+id/membership_loading" android:layout_width="wrap_content"
-        android:layout_height="wrap_content" android:visibility="gone" />
-    <Button android:id="@+id/membership_refresh" android:layout_width="wrap_content"
-        android:layout_height="wrap_content" android:text="@string/membership_refresh" />
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@color/app_background">
+    <TextView
+        android:id="@+id/membership_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/membership_title"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:lineSpacingExtra="3dp"
+        android:textSize="30sp"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/app_ink"
+        android:layout_marginBottom="6dp"
+        android:accessibilityHeading="true" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/design_membership_intro"
+        android:textSize="15sp"
+        android:textColor="@color/app_muted"
+        android:lineSpacingExtra="3dp"
+        android:layout_marginBottom="20dp" />
+    <TextView
+        android:id="@+id/membership_notice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:accessibilityLiveRegion="polite"
+        android:paddingVertical="8dp"
+        android:lineSpacingExtra="3dp" />
+    <ProgressBar
+        android:id="@+id/membership_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/membership_refresh"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/membership_refresh"
+        style="@style/Widget.Trojan.Secondary"
+        android:minHeight="56dp"
+        android:textAllCaps="false"
+        android:layout_marginTop="4dp" />
     <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-        <LinearLayout android:id="@+id/membership_content" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:orientation="vertical" />
+        <LinearLayout
+            android:id="@+id/membership_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
     </ScrollView>
 </LinearLayout>
