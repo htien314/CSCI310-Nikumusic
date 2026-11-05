@@ -484,7 +484,7 @@ public class ProfileFragment extends Fragment {
             checkbox.setChecked(sharedIds.contains(rideId));
 
             container.addView(checkbox);
-            Button details = new Button(requireContext());
+            Button details = com.example.trojanrideshare.ui.common.UiStyle.secondaryButton(requireContext());
             details.setText(R.string.profile_open_ride_details);
             details.setOnClickListener(v -> {
                 if (!isCurrentUser(view, uid)) return;

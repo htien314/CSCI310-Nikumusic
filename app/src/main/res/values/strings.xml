@@ -53,4 +53,9 @@
         <item quantity="one">Open: %1$d of %2$d riders, %3$d seat left</item>
         <item quantity="other">Open: %1$d of %2$d riders, %3$d seats left</item>
     </plurals>
+    <string name="brand_wordmark">TROJAN RIDESHARE</string>
+    <string name="search_more_filters">Filters and sorting</string>
+    <string name="search_less_filters">Hide filters</string>
+    <string name="search_organizer_fallback">USC student</string>
+    <string name="navigate_back">Go back</string>
 </resources>

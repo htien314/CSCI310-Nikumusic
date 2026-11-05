@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.trojanrideshare.R;
+import com.example.trojanrideshare.ui.common.UiStyle;
 import com.example.trojanrideshare.data.FirestoreRideRepository;
 import com.example.trojanrideshare.data.RideRepository;
 import com.example.trojanrideshare.model.ActivityStatus;
@@ -95,6 +96,7 @@ public class PaymentTrackingFragment extends Fragment {
         View screen = getView();
         if (screen == null) return;
 
+        paymentsContainer.removeAllViews();
         summaryText.setText("Loading payments...");
         hideError();
 
@@ -188,15 +190,13 @@ public class PaymentTrackingFragment extends Fragment {
             String name,
             CostShare share) {
 
-        LinearLayout row = new LinearLayout(requireContext());
-        row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(16, 20, 16, 20);
+        LinearLayout row = UiStyle.card(requireContext());
 
         TextView nameText = new TextView(requireContext());
         nameText.setText(name + "  •  "
                 + dollars(share.getAmountCents()));
         nameText.setTextSize(17);
-        nameText.setTextColor(0xFF35244F);
+        nameText.setTextColor(UiStyle.color(requireContext(), R.color.app_ink));
         row.addView(nameText);
 
         boolean overdue = costService.isPaymentOverdue(
@@ -206,16 +206,16 @@ public class PaymentTrackingFragment extends Fragment {
 
         if (share.isPaid()) {
             statusText.setText("Paid");
-            statusText.setTextColor(0xFF38845E);
+            statusText.setTextColor(UiStyle.color(requireContext(), R.color.app_success));
         } else if (share.isFlagged()) {
             statusText.setText("Flagged - payment overdue");
-            statusText.setTextColor(0xFFB3261E);
+            statusText.setTextColor(UiStyle.color(requireContext(), R.color.app_error));
         } else if (overdue) {
             statusText.setText("Overdue - payment pending");
-            statusText.setTextColor(0xFFB3261E);
+            statusText.setTextColor(UiStyle.color(requireContext(), R.color.app_error));
         } else {
             statusText.setText("Unpaid");
-            statusText.setTextColor(0xFF746985);
+            statusText.setTextColor(UiStyle.color(requireContext(), R.color.app_muted));
         }
 
         statusText.setPadding(0, 8, 0, 8);

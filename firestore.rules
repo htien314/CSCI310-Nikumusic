@@ -1,5 +1,13 @@
-
 rules_version = '2';
+// Rules for the fully integrated app on the free Spark plan (no Cloud Functions).
+// Private users contain uid, fullName/nickname (1-100), USC email/10-digit ID and
+// graduationYear. Public profiles contain names, optional sharedRideIds and
+// overdueRideIds. Rides contain immutable title (1-100), geocoded endpoint maps
+// (address <=1000), departure timestamp, maxRiders (2-6), positive integer-cent
+// estimate, optional note (<=2000), organizer identity and participants/participantIds.
+// Membership, completion and payment changes are written by the app in transactions;
+// each allowed change below checks the actor, the exact fields and server-time cutoffs.
+
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -34,7 +42,8 @@ service cloud.firestore {
     }
 
     function validLocation(place) {
-      return place is map && validName(place.address)
+      return place is map && place.keys().hasOnly(['address', 'latitude', 'longitude'])
+        && place.address is string && place.address.size() > 0 && place.address.size() <= 1000
         && place.latitude is number && place.longitude is number
         && place.latitude >= -90 && place.latitude <= 90
         && place.longitude >= -180 && place.longitude <= 180;
@@ -48,6 +57,166 @@ service cloud.firestore {
           && data.delayedDepartureTime is timestamp
           && data.delayedDepartureTime > data.departureTime
           && data.delayedDepartureTime > request.time);
+    }
+
+    function ridePath(rideId) {
+      return /databases/$(database)/documents/rides/$(rideId);
+    }
+
+    function requestPath(rideId, uid) {
+      return /databases/$(database)/documents/joinRequests/$(rideId + '_' + uid);
+    }
+
+    function isActive(data) {
+      return data.activityStatus in ['ON_TIME', 'DELAYED'];
+    }
+
+    // Requests and approvals stop at the current (possibly delayed) departure.
+    function beforeDeparture(data) {
+      return (data.get('delayedDepartureTime', null) == null && request.time < data.departureTime)
+        || (data.get('delayedDepartureTime', null) != null && request.time < data.delayedDepartureTime);
+    }
+
+    function afterDeparture(data) {
+      return (data.get('delayedDepartureTime', null) == null && request.time >= data.departureTime)
+        || (data.get('delayedDepartureTime', null) != null && request.time >= data.delayedDepartureTime);
+    }
+
+    // Leaving and cancelling use the original departure time.
+    function threeHoursBefore(data) {
+      return request.time + duration.value(3, 'h') <= data.departureTime;
+    }
+
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function lacksUser(participants, uid, index) {
+      return participants.size() <= index || participants[index].userId != uid;
+    }
+
+    function noParticipant(participants, uid) {
+      return lacksUser(participants, uid, 0) && lacksUser(participants, uid, 1)
+        && lacksUser(participants, uid, 2) && lacksUser(participants, uid, 3)
+        && lacksUser(participants, uid, 4) && lacksUser(participants, uid, 5);
+    }
+
+    // Exactly the leaving user's entry is removed; everyone else keeps their place.
+    function removesOnly(uid) {
+      let before = resource.data;
+      let after = request.resource.data;
+      return uid in before.get('participantIds', [])
+        && after.participantIds == before.participantIds.removeAll([uid])
+        && after.participants.size() == before.participants.size() - 1
+        && before.participants.hasAll(after.participants)
+        && noParticipant(after.participants, uid);
+    }
+
+    // The organizer accepts a pending request: its rider is appended and the request is accepted together.
+    function acceptsRequest(rideId) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let count = before.participants.size();
+      let added = after.participants[count];
+      return after.participants.size() == count + 1
+        && after.participants.hasAll(before.participants)
+        && added.keys().hasOnly(['userId', 'displayName', 'acceptedAt'])
+        && added.acceptedAt is timestamp
+        && !(added.userId in before.get('participantIds', []))
+        && after.participantIds == before.get('participantIds', []).concat([added.userId])
+        && count + 1 <= before.maxRiders
+        && ((count + 1 == before.maxRiders && after.capacityStatus == 'FULL')
+          || (count + 1 < before.maxRiders && after.capacityStatus == 'OPEN'))
+        && get(requestPath(rideId, added.userId)).data.status == 'PENDING'
+        && getAfter(requestPath(rideId, added.userId)).data.status == 'ACCEPTED'
+        && added.displayName == get(requestPath(rideId, added.userId)).data.displayName;
+    }
+
+    function shareIsNew(data, index) {
+      let ids = data.participantIds;
+      return ids.size() <= index
+        || (data.costShares[ids[index]].keys().hasOnly(['riderId', 'amountCents', 'paid', 'flagged'])
+          && data.costShares[ids[index]].keys().hasAll(['riderId', 'amountCents', 'paid', 'flagged'])
+          && data.costShares[ids[index]].riderId == ids[index]
+          && data.costShares[ids[index]].amountCents is int
+          && data.costShares[ids[index]].amountCents >= 0
+          && data.costShares[ids[index]].paid == false
+          && data.costShares[ids[index]].flagged == false);
+    }
+
+    function amount(data, index) {
+      return data.costShares[data.participantIds[index]].amountCents;
+    }
+
+    // Every participant has a share of $0.00 or more, and the shares add up to the actual cost.
+    function sharesTotal(data) {
+      let n = data.participantIds.size();
+      let total = data.actualCostCents;
+      return (n == 1 && amount(data, 0) == total)
+        || (n == 2 && amount(data, 0) + amount(data, 1) == total)
+        || (n == 3 && amount(data, 0) + amount(data, 1) + amount(data, 2) == total)
+        || (n == 4 && amount(data, 0) + amount(data, 1) + amount(data, 2) + amount(data, 3) == total)
+        || (n == 5 && amount(data, 0) + amount(data, 1) + amount(data, 2) + amount(data, 3)
+          + amount(data, 4) == total)
+        || (n == 6 && amount(data, 0) + amount(data, 1) + amount(data, 2) + amount(data, 3)
+          + amount(data, 4) + amount(data, 5) == total);
+    }
+
+    function completes() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return after.activityStatus == 'COMPLETED'
+        && after.capacityStatus == 'NOT_APPLICABLE'
+        && after.completedAt == request.time
+        && after.actualCostCents is int
+        && after.actualCostCents > 0
+        && after.participantIds == before.get('participantIds', [])
+        && after.participantIds.size() >= 1
+        && after.costShares is map
+        && after.costShares.keys().hasOnly(after.participantIds)
+        && after.costShares.keys().hasAll(after.participantIds)
+        && shareIsNew(after, 0) && shareIsNew(after, 1) && shareIsNew(after, 2)
+        && shareIsNew(after, 3) && shareIsNew(after, 4) && shareIsNew(after, 5)
+        && sharesTotal(after);
+    }
+
+    // The rider's own share goes from unpaid to Paid; nothing else changes.
+    function marksOwnSharePaid(uid) {
+      let before = resource.data.costShares;
+      let after = request.resource.data.costShares;
+      return uid in before
+        && after.diff(before).affectedKeys().hasOnly([uid])
+        && before[uid].paid == false
+        && after[uid].keys().hasOnly(['riderId', 'amountCents', 'paid', 'flagged'])
+        && after[uid].riderId == before[uid].riderId
+        && after[uid].amountCents == before[uid].amountCents
+        && after[uid].paid == true
+        && after[uid].flagged == false;
+    }
+
+    function shareFlaggedOrSame(index) {
+      let ids = resource.data.participantIds;
+      let before = resource.data.costShares;
+      let after = request.resource.data.costShares;
+      return ids.size() <= index
+        || after[ids[index]] == before[ids[index]]
+        || (before[ids[index]].paid == false
+          && after[ids[index]].keys().hasOnly(['riderId', 'amountCents', 'paid', 'flagged'])
+          && after[ids[index]].riderId == before[ids[index]].riderId
+          && after[ids[index]].amountCents == before[ids[index]].amountCents
+          && after[ids[index]].paid == false
+          && after[ids[index]].flagged == true);
+    }
+
+    // The organizer flags unpaid shares seven days after the cost was recorded.
+    function flagsUnpaidShares() {
+      let before = resource.data.costShares;
+      let after = request.resource.data.costShares;
+      return request.time >= resource.data.completedAt + duration.value(7, 'd')
+        && after.keys().hasOnly(before.keys()) && after.keys().hasAll(before.keys())
+        && before.keys().hasOnly(resource.data.participantIds)
+        && shareFlaggedOrSame(0) && shareFlaggedOrSame(1) && shareFlaggedOrSame(2)
+        && shareFlaggedOrSame(3) && shareFlaggedOrSame(4) && shareFlaggedOrSame(5);
     }
 
     // A member may share their own participation through their public profile.
@@ -78,6 +247,17 @@ service cloud.firestore {
       );
 
       allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['title', 'origin', 'destination',
+          'departureTime', 'delayedDepartureTime', 'maxRiders', 'expectedCostCents',
+          'note', 'organizerId', 'participants', 'participantIds', 'activityStatus',
+          'capacityStatus', 'actualCostCents', 'completedAt', 'costShares'])
+        && request.resource.data.participants is list
+        && request.resource.data.participants[0].keys().hasOnly(['userId', 'displayName', 'acceptedAt'])
+        && validName(request.resource.data.participants[0].displayName)
+        && request.resource.data.participants[0].displayName == get(userPath(request.auth.uid)).data.nickname
+        && request.resource.data.participants[0].acceptedAt is timestamp
+        && (request.resource.data.get('note', null) == null
+          || (request.resource.data.note is string && request.resource.data.note.size() <= 2000))
         && request.resource.data.organizerId == request.auth.uid
         && request.resource.data.participants.size() == 1
         && request.resource.data.participants[0].userId == request.auth.uid
@@ -94,24 +274,91 @@ service cloud.firestore {
         && request.resource.data.get('delayedDepartureTime', null) == null
         && request.resource.data.expectedCostCents is int
         && request.resource.data.expectedCostCents > 0
-        && request.resource.data.get('participantIds', [request.auth.uid]) == [request.auth.uid]
+        && request.resource.data.participantIds == [request.auth.uid]
         && request.resource.data.get('actualCostCents', null) == null
         && request.resource.data.get('completedAt', null) == null
         && request.resource.data.get('costShares', null) == null;
 
+      // The organizer marks the ride Delayed or back On-Time.
       allow update: if signedIn()
         && resource.data.organizerId == request.auth.uid
-        && !(resource.data.activityStatus in ['CANCELLED', 'COMPLETED'])
-        && request.resource.data.diff(resource.data)
-            .affectedKeys()
-            .hasOnly([
-              'activityStatus',
-              'delayedDepartureTime',
-              'capacityStatus'
-            ])
+        && isActive(resource.data)
+        && onlyChanges(['activityStatus', 'delayedDepartureTime', 'capacityStatus'])
         && request.resource.data.activityStatus in ['ON_TIME', 'DELAYED']
         && request.resource.data.capacityStatus == resource.data.capacityStatus
         && validRideTiming(request.resource.data);
+
+      // The organizer accepts a pending request before departure.
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && isActive(resource.data)
+        && beforeDeparture(resource.data)
+        && onlyChanges(['participants', 'participantIds', 'capacityStatus'])
+        && acceptsRequest(rideId);
+
+      // A rider other than the organizer leaves at least three hours before departure.
+      allow update: if signedIn()
+        && resource.data.organizerId != request.auth.uid
+        && isActive(resource.data)
+        && threeHoursBefore(resource.data)
+        && onlyChanges(['participants', 'participantIds', 'capacityStatus'])
+        && removesOnly(request.auth.uid)
+        && request.resource.data.capacityStatus == 'OPEN';
+
+      // The organizer leaves other riders behind: the latest-joined rider becomes the organizer.
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && isActive(resource.data)
+        && threeHoursBefore(resource.data)
+        && onlyChanges(['participants', 'participantIds', 'capacityStatus', 'organizerId'])
+        && removesOnly(request.auth.uid)
+        && request.resource.data.participants.size() >= 1
+        && request.resource.data.organizerId
+          == request.resource.data.participants[request.resource.data.participants.size() - 1].userId
+        && request.resource.data.capacityStatus == 'OPEN';
+
+      // A solo organizer leaving cancels the ride.
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && isActive(resource.data)
+        && threeHoursBefore(resource.data)
+        && resource.data.participantIds == [request.auth.uid]
+        && onlyChanges(['participants', 'participantIds', 'activityStatus', 'capacityStatus'])
+        && request.resource.data.participants == []
+        && request.resource.data.participantIds == []
+        && request.resource.data.activityStatus == 'CANCELLED'
+        && request.resource.data.capacityStatus == 'NOT_APPLICABLE';
+
+      // The organizer cancels the whole ride at least three hours before departure.
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && isActive(resource.data)
+        && threeHoursBefore(resource.data)
+        && onlyChanges(['activityStatus', 'capacityStatus'])
+        && request.resource.data.activityStatus == 'CANCELLED'
+        && request.resource.data.capacityStatus == 'NOT_APPLICABLE';
+
+      // The organizer completes the ride after departure and records the cost shares.
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && isActive(resource.data)
+        && afterDeparture(resource.data)
+        && onlyChanges(['activityStatus', 'capacityStatus', 'actualCostCents', 'completedAt',
+          'participantIds', 'costShares'])
+        && completes();
+
+      // A rider marks their own share Paid.
+      allow update: if signedIn()
+        && resource.data.activityStatus == 'COMPLETED'
+        && onlyChanges(['costShares'])
+        && marksOwnSharePaid(request.auth.uid);
+
+      // The organizer flags unpaid shares.
+      allow update: if signedIn()
+        && resource.data.organizerId == request.auth.uid
+        && resource.data.activityStatus == 'COMPLETED'
+        && onlyChanges(['costShares'])
+        && flagsUnpaidShares();
 
     }
 
@@ -122,17 +369,84 @@ service cloud.firestore {
 
     match /joinRequests/{requestId} {
 
-      allow read: if signedIn()
-        && (
-          resource.data.userId == request.auth.uid
-          ||
-          get(
-            /databases/$(database)/documents/rides/$(resource.data.rideId)
-          ).data.organizerId == request.auth.uid
-        );
+      function rideOf(id) {
+        return get(ridePath(id)).data;
+      }
 
-      // Membership writes are handled separately.
-      allow write: if false;
+      // A new or resubmitted request: one per ride and user, for an open, active ride before departure.
+      function validSubmission() {
+        let data = request.resource.data;
+        let ride = rideOf(data.rideId);
+        return requestId == data.rideId + '_' + request.auth.uid
+          && data.keys().hasOnly(['rideId', 'userId', 'displayName', 'message', 'status',
+            'createdAt', 'updatedAt'])
+          && data.userId == request.auth.uid
+          && data.status == 'PENDING'
+          && data.message is string
+          && data.message.size() <= 1000
+          && data.displayName == get(userPath(request.auth.uid)).data.nickname
+          && data.createdAt == request.time
+          && data.updatedAt == request.time
+          && isActive(ride)
+          && beforeDeparture(ride)
+          && ride.organizerId != request.auth.uid
+          && !(request.auth.uid in ride.get('participantIds', []))
+          && ride.participants.size() < ride.maxRiders;
+      }
+
+      function statusOnlyChange() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt', 'closedReason'])
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.get('closedReason', null)
+            in [null, 'RIDE_FULL', 'RIDE_CANCELLED', 'RIDE_COMPLETED'];
+      }
+
+      // Missing documents can be checked, so the app can see whether a request exists yet.
+      allow get: if signedIn() && (
+        resource == null
+        || resource.data.userId == request.auth.uid
+        || rideOf(resource.data.rideId).organizerId == request.auth.uid
+      );
+
+      allow list: if signedIn() && (
+        resource.data.userId == request.auth.uid
+        || rideOf(resource.data.rideId).organizerId == request.auth.uid
+      );
+
+      allow create: if signedIn() && validSubmission();
+
+      // Asking again after cancelling a request or leaving the ride; a rejected request stays rejected.
+      // validSubmission() requires that the rider is not currently in the ride.
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && resource.data.status in ['CANCELLED', 'ACCEPTED']
+        && validSubmission();
+
+      // The rider withdraws their own pending request.
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == 'PENDING'
+        && request.resource.data.status == 'CANCELLED'
+        && statusOnlyChange();
+
+      // The organizer rejects a pending request, or closes it because the ride filled,
+      // was cancelled or was completed.
+      allow update: if signedIn()
+        && rideOf(resource.data.rideId).organizerId == request.auth.uid
+        && resource.data.status == 'PENDING'
+        && request.resource.data.status == 'REJECTED'
+        && statusOnlyChange();
+
+      // The organizer accepts a pending request; the ride must add the rider in the same transaction.
+      allow update: if signedIn()
+        && rideOf(resource.data.rideId).organizerId == request.auth.uid
+        && resource.data.status == 'PENDING'
+        && request.resource.data.status == 'ACCEPTED'
+        && statusOnlyChange()
+        && resource.data.userId in getAfter(ridePath(resource.data.rideId)).data.participantIds;
+
+      allow delete: if false;
     }
 
     // ---------------------------------------
@@ -148,6 +462,9 @@ service cloud.firestore {
       // Registration must create a matching public profile
       // and reserve the USC ID in the same atomic batch.
       allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'fullName', 'nickname', 'uscEmail', 'uscId', 'graduationYear'])
+        && request.auth.token.email is string
+        && request.resource.data.uscEmail.lower() == request.auth.token.email.lower()
         && request.resource.data.uid == uid
         && request.resource.data.uscId is string
         && request.resource.data.uscId.matches('^[0-9]{10}$')
@@ -230,6 +547,35 @@ service cloud.firestore {
           getAfter(userPath(uid)).data.nickname ==
               request.resource.data.displayName
         );
+
+      // The list of rides where this student's share is flagged unpaid changes only with that share:
+      // the organizer adds a ride when flagging it, and the student removes it after paying.
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['overdueRideIds'])
+        && request.resource.data.overdueRideIds is list
+        && (flagAdded(uid) || paymentRemoved(uid));
+
+      function overdueBefore() {
+        return resource.data.get('overdueRideIds', []);
+      }
+
+      function flagAdded(uid) {
+        let added = request.resource.data.overdueRideIds.removeAll(overdueBefore());
+        return request.resource.data.overdueRideIds.size() == overdueBefore().size() + 1
+          && request.resource.data.overdueRideIds.hasAll(overdueBefore())
+          && added.size() == 1
+          && get(ridePath(added[0])).data.organizerId == request.auth.uid
+          && getAfter(ridePath(added[0])).data.costShares[uid].flagged == true;
+      }
+
+      function paymentRemoved(uid) {
+        let removed = overdueBefore().removeAll(request.resource.data.overdueRideIds);
+        return isOwner(uid)
+          && request.resource.data.overdueRideIds.size() == overdueBefore().size() - 1
+          && overdueBefore().hasAll(request.resource.data.overdueRideIds)
+          && removed.size() == 1
+          && getAfter(ridePath(removed[0])).data.costShares[uid].paid == true;
+      }
 
       allow delete: if false;
     }

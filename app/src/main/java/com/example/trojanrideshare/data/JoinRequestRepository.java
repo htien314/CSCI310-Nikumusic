@@ -5,7 +5,7 @@ import com.example.trojanrideshare.model.Ride;
 import com.example.trojanrideshare.util.Callback;
 import java.util.List;
 
-/** Reads stream from Firestore; writes run through the trusted membership callable. */
+/** Reads stream from Firestore; writes run as app-side transactions checked by firestore.rules. */
 public interface JoinRequestRepository {
     interface Subscription { void remove(); }
     Subscription observeRides(Callback<List<Ride>> callback);

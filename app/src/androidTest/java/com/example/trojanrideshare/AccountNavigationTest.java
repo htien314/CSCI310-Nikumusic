@@ -52,4 +52,21 @@ public class AccountNavigationTest {
             assertFalse(controller.popBackStack(R.id.registerFragment,false));
         });
     }
+    @Test public void profileReturnPreservesSearchForm() {
+        onMain(()->((BottomNavigationView)activity.findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.searchFragment));
+        onMain(()->((android.widget.EditText)activity.findViewById(R.id.radius_input)).setText("12.5"));
+        onMain(()->((BottomNavigationView)activity.findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.profileFragment));
+        onMain(()->((BottomNavigationView)activity.findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.searchFragment));
+        onMain(()->assertEquals("12.5",((android.widget.EditText)activity.findViewById(R.id.radius_input)).getText().toString()));
+    }
+
+    @Test public void childScreensOfferAnAccessibleBackButton() {
+        onMain(()->controller.navigate(R.id.loginFragment));
+        onMain(()->{
+            com.google.android.material.appbar.MaterialToolbar toolbar=activity.findViewById(R.id.app_toolbar);
+            assertEquals(android.view.View.VISIBLE,toolbar.getVisibility());
+            assertEquals("Go back",toolbar.getNavigationContentDescription());
+            assertNotNull(toolbar.getNavigationIcon());
+        });
+    }
 }

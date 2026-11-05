@@ -5,6 +5,11 @@ import java.time.Year;
 import static org.junit.Assert.*;
 
 public class RegistrationValidatorTest {
+    @Test public void rejectsOversizedNamesAndNicknamesBeforeCreatingAnAccount() {
+        assertNotNull(RegistrationValidator.validate("x".repeat(101),"alice@usc.edu","1234567890","password123",Year.now().getValue()));
+        assertNull(RegistrationValidator.validateNickname("x".repeat(100)));
+        assertNotNull(RegistrationValidator.validateNickname("x".repeat(101)));
+    }
     private String validate(String email, String id, int year) {
         return RegistrationValidator.validate("Hailey Tien", email, id, "password123", year);
     }

@@ -50,9 +50,10 @@ Give each picker its own `android:id`; it saves its own text and chosen place ac
 The adapter is `GeocoderLocationGateway`, which uses Android's built-in `Geocoder`. On devices and emulators with Google Play services it calls Google's geocoding service.
 
 - **No API key is needed.** The `MAPS_API_KEY` line in the README is only required if we switch to the Places SDK later.
-- **Emulator:** use a system image labeled "Google APIs" or "Google Play". Plain AOSP images have no geocoder, and the app says so instead of crashing.
+- **Emulator:** a "Google APIs" or "Google Play" image is preferred. Google's provider can hang (`DEADLINE_EXCEEDED`) when Play services fails its device check, which happens on some emulator images.
+- **Fallback:** if the Geocoder fails, takes longer than 8 seconds or finds nothing, `NominatimLocationGateway` asks OpenStreetMap's free Nominatim service instead (no key; identifying User-Agent; well under its one-request-per-second limit). After one timeout, the rest of that app run goes straight to OpenStreetMap. OpenStreetMap is less forgiving of misspellings than Google.
 - Lookups are biased toward Southern California first, so "LAX" means the airport.
-- Lookups run off the main thread. A failed network call is retried once.
+- Lookups run off the main thread. A failed Geocoder call is retried once.
 
 To switch to Google Places later, write another `LocationGateway` implementation and swap it in the two ViewModel factories and the fragment. Nothing else depends on Geocoder.
 

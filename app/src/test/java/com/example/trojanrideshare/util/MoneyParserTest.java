@@ -21,8 +21,15 @@ public class MoneyParserTest {
     }
 
     @Test
-    public void ignoresExtraTrailingZeros() {
-        assertEquals(6_050, MoneyParser.parsePositiveCents("60.500"));
+    public void rejectsExtraTrailingDecimalPlaces() {
+        assertRejected("60.500");
+    }
+
+    @Test public void customSharesAllowZeroButRejectExponentsSignsAndFractionalCents() {
+        assertEquals(0, MoneyParser.parseNonNegativeCents("0.00"));
+        assertEquals(1001, MoneyParser.parseNonNegativeCents("10.01"));
+        for (String value : new String[]{"1e2", "+10", "-1", "1.001", "1.000", ""})
+            assertThrows(IllegalArgumentException.class, () -> MoneyParser.parseNonNegativeCents(value));
     }
 
     @Test

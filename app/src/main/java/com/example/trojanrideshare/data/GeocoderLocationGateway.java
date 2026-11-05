@@ -16,12 +16,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * LocationGateway backed by Android's Geocoder, which uses Google's geocoding service on devices
- * and emulators with Google Play / Google APIs. It needs no API key. See docs/nikhil-search-locations.md.
+ * and emulators with Google Play / Google APIs. It needs no API key. When the Geocoder fails, times
+ * out or finds nothing, OpenStreetMap's Nominatim is asked instead. See docs/nikhil-search-locations.md.
  */
 public class GeocoderLocationGateway implements LocationGateway {
 
@@ -33,8 +39,16 @@ public class GeocoderLocationGateway implements LocationGateway {
     private static final double NEARBY_NORTH = 35.0;
     private static final double NEARBY_EAST = -116.0;
 
+    private static final long GEOCODER_TIME_LIMIT_SECONDS = 8;
+
+    // Shared by every screen's gateway: after one timeout, the rest of this app run uses OpenStreetMap.
+    private static volatile boolean geocoderTimedOut;
+
     private final Geocoder geocoder;
+    private final NominatimLocationGateway fallback = new NominatimLocationGateway();
     private final Executor background = Executors.newSingleThreadExecutor();
+    // Geocoder calls run separately so a hung call can be abandoned after the time limit.
+    private final ExecutorService geocoderCalls = Executors.newCachedThreadPool();
     private final Handler mainThread = new Handler(Looper.getMainLooper());
 
     public GeocoderLocationGateway(Context context) {
@@ -63,32 +77,75 @@ public class GeocoderLocationGateway implements LocationGateway {
             callback.onError(new IllegalArgumentException("Enter an origin and a destination."));
             return;
         }
-        if (!Geocoder.isPresent()) {
-            callback.onError(new IllegalStateException(
-                    "Location search isn't available on this device. Use an emulator image with Google APIs."));
-            return;
-        }
         int max = Math.max(1, maxResults);
         background.execute(() -> {
-            try {
-                List<Location> found = findWithRetry(search, max);
-                mainThread.post(() -> {
-                    if (found.isEmpty()) {
-                        callback.onError(new NoSuchElementException("Couldn't find \"" + search + "\"."));
-                    } else {
-                        callback.onSuccess(found);
-                    }
-                });
-            } catch (IOException e) {
-                Log.w(TAG, "Location lookup failed", e);
-                mainThread.post(() -> callback.onError(
-                        new IOException("Couldn't search for locations. Check your connection and try again.")));
-            } catch (IllegalArgumentException e) {
-                Log.w(TAG, "Location lookup rejected", e);
-                mainThread.post(() -> callback.onError(
-                        new IllegalArgumentException("Couldn't understand \"" + search + "\". Try a different place.")));
+            List<Location> found = new ArrayList<>();
+            boolean geocoderFailed = false;
+            if (Geocoder.isPresent() && !geocoderTimedOut) {
+                try {
+                    found = findWithTimeLimit(search, max);
+                } catch (IllegalArgumentException e) {
+                    Log.w(TAG, "Location lookup rejected", e);
+                    mainThread.post(() -> callback.onError(
+                            new IllegalArgumentException("Couldn't understand \"" + search + "\". Try a different place.")));
+                    return;
+                } catch (IOException | TimeoutException e) {
+                    Log.w(TAG, "Geocoder lookup failed, using OpenStreetMap instead", e);
+                    geocoderFailed = true;
+                }
+            } else {
+                geocoderFailed = true;
             }
+
+            // Google's provider can time out (DEADLINE_EXCEEDED) on some emulators, and its
+            // coverage differs from OpenStreetMap's, so a failed or empty lookup gets a second source.
+            if (found.isEmpty()) {
+                try {
+                    found = fallback.search(search, max);
+                } catch (IOException e) {
+                    Log.w(TAG, "OpenStreetMap lookup failed", e);
+                    if (geocoderFailed) {
+                        mainThread.post(() -> callback.onError(
+                                new IOException("Couldn't search for locations. Check your connection and try again.")));
+                        return;
+                    }
+                }
+            }
+
+            List<Location> result = found;
+            mainThread.post(() -> {
+                if (result.isEmpty()) {
+                    callback.onError(new NoSuchElementException("Couldn't find \"" + search + "\"."));
+                } else {
+                    callback.onSuccess(result);
+                }
+            });
         });
+    }
+
+    /** Gives up on Android's Geocoder after a few seconds instead of leaving the user waiting. */
+    private List<Location> findWithTimeLimit(String search, int max) throws IOException, TimeoutException {
+        Future<List<Location>> lookup = geocoderCalls.submit(() -> findWithRetry(search, max));
+        try {
+            return lookup.get(GEOCODER_TIME_LIMIT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            lookup.cancel(true);
+            // A provider that hangs once tends to keep hanging, so stop waiting on it.
+            geocoderTimedOut = true;
+            throw e;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Location lookup was interrupted.", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            }
+            if (cause instanceof IllegalArgumentException) {
+                throw (IllegalArgumentException) cause;
+            }
+            throw new IOException("Location lookup failed.", cause);
+        }
     }
 
     /** The location service sometimes fails briefly, so a failed lookup gets one more try. */

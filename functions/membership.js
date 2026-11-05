@@ -22,8 +22,10 @@ function transition({ride, requests, action, uid, targetId, message = '', displa
   const changed = [];
   const own = requests.find(r => r.userId === uid);
   const target = requests.find(r => r.id === targetId);
-  const setStatus = (request, status) => {
-    request.status = status; request.updatedAt = now; changed.push(request);
+  const setStatus = (request, status, closedReason = null) => {
+    request.status = status; request.updatedAt = now;
+    if (closedReason) request.closedReason = closedReason;
+    changed.push(request);
   };
   const requireActive = () => { if (isFinal(ride)) fail('This ride is cancelled or completed.'); };
   const requireBeforeDeparture = () => {
@@ -97,7 +99,8 @@ function transition({ride, requests, action, uid, targetId, message = '', displa
     : ride.participants.length >= ride.maxRiders ? 'FULL' : 'OPEN';
   // The full transition rejects every pending request in the SAME transaction.
   if (ride.capacityStatus === 'FULL' || ride.activityStatus === 'CANCELLED') {
-    for (const request of requests) if (request.status === 'PENDING') setStatus(request, 'REJECTED');
+    for (const request of requests) if (request.status === 'PENDING')
+      setStatus(request, 'REJECTED', ride.activityStatus === 'CANCELLED' ? 'RIDE_CANCELLED' : 'RIDE_FULL');
   }
   return {ride, changed};
 }

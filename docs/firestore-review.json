@@ -1,0 +1,18 @@
+{
+  "score": 3,
+  "summary": "Local prototype rules enforce private ownership and server-only membership/payment writes, with passing emulator regressions. They do not establish verified USC membership; this is not a live-project security certification.",
+  "findings": [
+    {
+      "check": "Authority source and business logic",
+      "severity": "moderate",
+      "issue": "firestore.rules signedIn() accepts any Firebase-authenticated account for active ride/public profile reads. functions/index.js membership and rideCosts authenticate UID but do not universally require a registered, verified USC identity. USC format validation during profile creation does not verify mailbox ownership.",
+      "recommendation": "If verified USC-only access is required, implement email verification and a common registered-student gate in both client-facing rules and callables, with cross-account and unverified/non-USC regression tests. Coordinate with the demo requirements before deployment."
+    },
+    {
+      "check": "Storage abuse and type safety",
+      "severity": "minor",
+      "issue": "publicProfiles sharedRideIds is limited to 100 entries but individual list element types/lengths are not checked. Membership checks prevent this from publishing an unrelated private ride, but malformed entries can corrupt the owner's sharing data.",
+      "recommendation": "Normalize and validate sharing entries through an authoritative backend or a bounded per-ride sharing schema; retain actual-participant checks."
+    }
+  ]
+}

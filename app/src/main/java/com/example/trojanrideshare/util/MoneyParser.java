@@ -16,6 +16,13 @@ public final class MoneyParser {
      *                                  two decimal places
      */
     public static long parsePositiveCents(String text) {
+        long cents = parseNonNegativeCents(text);
+        if (cents == 0) throw new IllegalArgumentException("Cost must be more than $0.");
+        return cents;
+    }
+
+    /** Allows a zero custom share, but uses the same plain-dollar format as the total. */
+    public static long parseNonNegativeCents(String text) {
         String amount = text == null ? "" : text.trim();
         if (amount.isEmpty()) {
             throw new IllegalArgumentException("Enter a cost.");
@@ -24,10 +31,10 @@ public final class MoneyParser {
             throw new IllegalArgumentException("Enter the cost as a number, like 60.50.");
         }
         BigDecimal dollars = new BigDecimal(amount);
-        if (dollars.stripTrailingZeros().scale() > 2) {
+        if (dollars.scale() > 2) {
             throw new IllegalArgumentException("Cost can't have more than two decimal places.");
         }
-        if (dollars.signum() <= 0) {
+        if (dollars.signum() < 0) {
             throw new IllegalArgumentException("Cost must be more than $0.");
         }
         try {

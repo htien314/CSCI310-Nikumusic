@@ -39,17 +39,28 @@ public class MainActivity extends AppCompatActivity {
         }
         NavController navController = navHostFragment.getNavController();
         BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.app_toolbar);
+        toolbar.setNavigationOnClickListener(v -> {
+            if (!navController.navigateUp()) com.example.trojanrideshare.ui.auth.AccountNavigation.showProfile(navController);
+        });
+        navController.addOnDestinationChangedListener((controller, destination, args) -> {
+            int id = destination.getId();
+            boolean topLevel = id == R.id.profileFragment || id == R.id.searchFragment
+                    || id == R.id.createRideFragment || id == R.id.myRidesFragment;
+            toolbar.setVisibility(topLevel ? android.view.View.GONE : android.view.View.VISIBLE);
+            toolbar.setTitle(destination.getLabel());
+        });
         NavigationUI.setupWithNavController(bottomNav, navController);
         bottomNav.setOnItemSelectedListener(item -> {
             if (item.getItemId() == R.id.profileFragment) {
-                com.example.trojanrideshare.ui.auth.AccountNavigation.showProfile(navController);
+                com.example.trojanrideshare.ui.auth.AccountNavigation.showProfile(navController, true);
                 return true;
             }
             return NavigationUI.onNavDestinationSelected(item, navController);
         });
         bottomNav.setOnItemReselectedListener(item -> {
             if (item.getItemId() == R.id.profileFragment) {
-                com.example.trojanrideshare.ui.auth.AccountNavigation.showProfile(navController);
+                com.example.trojanrideshare.ui.auth.AccountNavigation.showProfile(navController, true);
             } else {
                 navController.popBackStack(item.getItemId(), false);
             }

@@ -9,6 +9,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.WriteBatch;
 
 import java.util.HashMap;
@@ -56,10 +57,11 @@ public class UserRepository {
             OnSuccessListener<Void> onSuccess,
             OnFailureListener onFailure) {
 
-        if (nickname == null || nickname.trim().isEmpty()) {
+        String nicknameError = com.example.trojanrideshare.service.RegistrationValidator.validateNickname(nickname);
+        if (nicknameError != null) {
             onFailure.onFailure(
                     new IllegalArgumentException(
-                            "Nickname cannot be empty."
+                            nicknameError
                     )
             );
             return;
@@ -117,7 +119,7 @@ public class UserRepository {
         ).addOnFailureListener(onFailure);
     }
 
-    // Register a student through the authenticated atomic backend transaction.
+    // Register a student: private profile, public profile and USC ID reservation in one batch.
     public void registerUser(
             User user,
             OnSuccessListener<Void> onSuccess,
@@ -137,17 +139,32 @@ public class UserRepository {
             return;
         }
 
-        Map<String,Object> data = new HashMap<>();
-        data.put("fullName",user.getFullName()); data.put("nickname",user.getNickname());
-        data.put("uscEmail",user.getUscEmail()); data.put("uscId",user.getUscId());
-        data.put("graduationYear",user.getGraduationYear());
-        com.google.firebase.functions.FirebaseFunctions.getInstance("us-central1")
-                .getHttpsCallable("registerProfile").call(data)
-                .addOnSuccessListener(result -> onSuccess.onSuccess(null))
+        DocumentReference userRef = db.collection("users").document(user.getUid());
+        DocumentReference idRef = db.collection("uscIdReservations").document(user.getUscId());
+        DocumentReference publicRef = db.collection("publicProfiles").document(user.getUid());
+
+        Map<String, Object> reservation = new HashMap<>();
+        reservation.put("uid", user.getUid());
+
+        Map<String, Object> publicProfile = new HashMap<>();
+        publicProfile.put("displayName", user.getNickname());
+        publicProfile.put("fullName", user.getFullName());
+
+        // All three writes succeed or fail together. The rules let a USC ID be reserved only
+        // once, so a taken ID makes the reservation write, and the whole batch, fail.
+        WriteBatch batch = db.batch();
+        batch.set(idRef, reservation);
+        batch.set(userRef, user);
+        batch.set(publicRef, publicProfile);
+        batch.commit()
+                .addOnSuccessListener(onSuccess)
                 .addOnFailureListener(error -> {
-                    if (error instanceof com.google.firebase.functions.FirebaseFunctionsException) {
-                        // The callable returns precise, user-facing registration errors.
-                        onFailure.onFailure(new IllegalArgumentException(error.getMessage(), error));
+                    if (error instanceof FirebaseFirestoreException
+                            && ((FirebaseFirestoreException) error).getCode()
+                            == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        // The fields were validated before this, so a denial means the ID is taken.
+                        onFailure.onFailure(new IllegalArgumentException(
+                                "This USC ID is already registered.", error));
                     } else {
                         onFailure.onFailure(error);
                     }

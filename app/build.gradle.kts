@@ -58,6 +58,8 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.arch.core.testing)
+    // Android's org.json is a stub in local unit tests; this is the real implementation.
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 }

@@ -6,16 +6,13 @@ import com.example.trojanrideshare.util.Callback;
 import com.example.trojanrideshare.util.Constants;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.functions.FirebaseFunctions;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class FirebaseJoinRequestRepository implements JoinRequestRepository {
     private final FirebaseFirestore db;
-    private final FirebaseFunctions functions;
-    public FirebaseJoinRequestRepository(FirebaseFirestore db, FirebaseFunctions functions) {
-        this.db = db; this.functions = functions;
+    private final MembershipTransactions transactions;
+    public FirebaseJoinRequestRepository(FirebaseFirestore db) {
+        this.db = db; this.transactions = new MembershipTransactions(db);
     }
     private <T> Subscription observe(Query query, Class<T> type, Callback<List<T>> callback) {
         return query.addSnapshotListener((snapshot, error) -> {
@@ -40,12 +37,8 @@ public final class FirebaseJoinRequestRepository implements JoinRequestRepositor
         return observe(db.collection(Constants.COLLECTION_JOIN_REQUESTS).whereEqualTo("rideId", rideId), JoinRequest.class, callback);
     }
     @Override public void mutate(String action, String rideId, String requestId, String message, Callback<Void> callback) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("action", action); data.put("rideId", rideId);
-        if (requestId != null) data.put("targetId", requestId);
-        if (message != null) data.put("message", message);
-        functions.getHttpsCallable("membership").call(data)
-                .addOnSuccessListener(result -> callback.onSuccess(null))
+        transactions.run(action, rideId, requestId, message)
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
                 .addOnFailureListener(callback::onError);
     }
 }

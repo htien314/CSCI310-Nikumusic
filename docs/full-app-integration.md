@@ -1,5 +1,7 @@
 # Full app integration
 
+> Current review: see [November 3 integration and UI review](full-app-review.md). That checkpoint supersedes older test counts below. Its real-geocoding attempt timed out; its passing full Android workflow uses explicitly labeled USC/LAX fixtures. Earlier real-geocoding results below are historical, not a result of the current run.
+
 Branch: `integration/full-app`, built on `integration/ada-riya-nikhil` (`7a2c7c8`), with Hailey’s membership branch and Estelle’s cost branch merged with their histories preserved. Main has not been changed.
 
 ## Connected behavior
