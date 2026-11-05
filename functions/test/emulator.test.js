@@ -97,11 +97,12 @@ if (!enabled) {
     await assertSucceeds(getDocs(query(collection(owner,'joinRequests'),where('rideId','==','ride'))));
     await assertFails(getDoc(doc(stranger,`joinRequests/${a.id}`)));
   });
-  test('rules permit Ada status-only update but protect finished rides and cutoff', async () => {
+  test('rules permit organizer status updates and cancellation but protect finished rides and cutoff', async () => {
     const owner=env.authenticatedContext('owner').firestore();
     await assertSucceeds(updateDoc(doc(owner,'rides/ride'),{activityStatus:'DELAYED',delayedDepartureTime:new Date(Date.now()+172800000)}));
-    await assertFails(updateDoc(doc(owner,'rides/ride'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
-    await invoke('owner',{action:'cancelRide',rideId:'ride'});
+    const stranger=env.authenticatedContext('stranger').firestore();
+    await assertFails(updateDoc(doc(stranger,'rides/ride'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
+    await assertSucceeds(updateDoc(doc(owner,'rides/ride'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
     await assertFails(updateDoc(doc(owner,'rides/ride'),{activityStatus:'ON_TIME',capacityStatus:'OPEN'}));
     await db.doc('rides/ride').update({activityStatus:'ON_TIME',capacityStatus:'OPEN',departureTime:Timestamp.fromMillis(Date.now()+1000)});
     await assertFails(updateDoc(doc(owner,'rides/ride'),{activityStatus:'CANCELLED',capacityStatus:'NOT_APPLICABLE'}));
