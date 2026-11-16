@@ -36,6 +36,10 @@ The normal Android build still points at the shared Firebase project and needs t
 - Open small pull requests; at least one teammate reviews before merging.
 - Don't edit another member's service or screen without checking with them.
 
+## Account and profile tests
+
+Riya's five Espresso tests, five JUnit tests, run instructions and measured coverage are documented in [the feature 1 test report](docs/riya-feature-1-tests.md). Run `node scripts/test-account-profile.cjs` for the isolated Android workflow; it uses a demo Firebase backend and a separate test application ID.
+
 ## Owners
 | Area | Owner |
 |---|---|

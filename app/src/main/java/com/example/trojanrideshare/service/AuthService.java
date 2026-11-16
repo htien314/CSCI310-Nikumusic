@@ -18,8 +18,13 @@ public class AuthService {
     private final UserRepository userRepository;
 
     public AuthService() {
-        auth = FirebaseAuth.getInstance();
-        userRepository = new UserRepository();
+        this(FirebaseAuth.getInstance(), new UserRepository());
+    }
+
+    // Package-private injection keeps local tests independent of Android and Firebase.
+    AuthService(FirebaseAuth auth, UserRepository userRepository) {
+        this.auth = auth;
+        this.userRepository = userRepository;
     }
 
     // Validate registration information.
