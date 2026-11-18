@@ -2,6 +2,11 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
+    jacoco
+}
+
+jacoco {
+    toolVersion = "0.8.14"
 }
 
 android {
@@ -62,4 +67,22 @@ dependencies {
     testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+}
+
+// Run with testDebugUnitTest --tests '*RideManagementWhiteBoxTest' so these figures
+// describe only Member 2's five JUnit cases, not the whole team suite.
+tasks.register<JacocoReport>("rideManagementCoverage") {
+    dependsOn("testDebugUnitTest")
+    executionData.setFrom(layout.buildDirectory.file("jacoco/testDebugUnitTest.exec"))
+    sourceDirectories.setFrom(files("src/main/java"))
+    classDirectories.setFrom(fileTree(layout.buildDirectory.dir(
+        "intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+    )) {
+        include("com/example/trojanrideshare/service/RideService*.class")
+    })
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
 }
