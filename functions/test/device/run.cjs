@@ -21,7 +21,7 @@ if(!root) throw new Error('Set TROJAN_DEVICE_BUILD to the isolated demo-project 
 const sdk=process.env.ANDROID_HOME||process.env.ANDROID_SDK_ROOT||path.join(os.homedir(),'Library/Android/sdk');
 const adb=process.env.ANDROID_ADB||path.join(sdk,'platform-tools/adb');
 const device=process.env.ANDROID_SERIAL || 'emulator-5554';
-const run=args=>{const r=spawnSync(adb,['-s',device,...args],{encoding:'utf8'});process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');if(r.status!==0)throw new Error('Android command failed.');};
+const run=args=>{const r=spawnSync(adb,['-s',device,...args],{encoding:'utf8'});process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');if(r.status!==0)throw new Error('Android command failed.');return r.stdout||'';};
 const server=http.createServer(async(req,res)=>{
  try {
   if(req.method!=='POST'||!['/fixture','/cost-payment-fixture','/search-fixture'].includes(req.url)) {res.writeHead(404).end();return;}
@@ -75,7 +75,11 @@ async function searchFixture({action,rides}){
  run(['install','-r',path.join(root,'app/build/outputs/apk/debug/app-debug.apk')]);
  run(['install','-r',path.join(root,'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')]);
  run(['shell','pm','clear','com.example.trojanrideshare.integrationtest']);
- run(['shell','pm','grant','com.example.trojanrideshare.integrationtest','android.permission.ACCESS_LOCAL_NETWORK']);
+ const localNetworkPermission = 'android.permission.ACCESS_LOCAL_NETWORK';
+ const permissionList = run(['shell','pm','list','permissions']);
+ if (permissionList.split(/\r?\n/).includes('permission:' + localNetworkPermission)) {
+  run(['shell','pm','grant','com.example.trojanrideshare.integrationtest',localNetworkPermission]);
+ }
  async function instrument(method, checkpoint, className = "FullAppEmulatorTest") {
   const child=spawn(adb,['-s',device,'shell','am','instrument','-w','-e','locationMode',process.env.TROJAN_TEST_LOCATIONS || 'real','-e','class',`com.example.trojanrideshare.${className}#${method}`,'com.example.trojanrideshare.integrationtest.test/androidx.test.runner.AndroidJUnitRunner']);
   let output='';child.stdout.on('data',d=>{output+=d;process.stdout.write(d);});child.stderr.pipe(process.stderr);
