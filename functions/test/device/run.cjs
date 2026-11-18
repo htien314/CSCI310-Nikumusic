@@ -5,8 +5,17 @@ const os=require('node:os');
 const {spawn,spawnSync}=require('node:child_process');
 const {initializeApp,deleteApp}=require('firebase-admin/app');
 const {getFirestore,Timestamp}=require('firebase-admin/firestore');
+const {seedCostPaymentFixture}=require('./cost-payment-fixtures.cjs');
 if(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST || process.env.GCLOUD_PROJECT!=='demo-trojan-device') throw new Error('Run only through the demo-trojan-device Firebase emulators.');
 const app=initializeApp({projectId:'demo-trojan-device'}),db=getFirestore();
+const costPaymentsOnly = process.env.TROJAN_DEVICE_SUITE === 'cost-payments';
+const costPaymentTests = [
+  ['bb21_completesFortyDollarRideWithFourEqualShares', 'BB21 passed'],
+  ['bb22_displaysRemainderOnFirstRidersShare', 'BB22 passed'],
+  ['bb23_rejectsNegativeFinalCost', 'BB23 passed'],
+  ['bb24_recordsOwnPaymentAndShowsItAfterReopening', 'BB24 passed'],
+  ['bb25_showsAssignedSharesForSelectedMonth', 'BB25 passed']
+];
 const root=process.env.TROJAN_DEVICE_BUILD;
 if(!root) throw new Error('Set TROJAN_DEVICE_BUILD to the isolated demo-project Android build.');
 const sdk=process.env.ANDROID_HOME||process.env.ANDROID_SDK_ROOT||path.join(os.homedir(),'Library/Android/sdk');
@@ -15,9 +24,16 @@ const device=process.env.ANDROID_SERIAL || 'emulator-5554';
 const run=args=>{const r=spawnSync(adb,['-s',device,...args],{encoding:'utf8'});process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');if(r.status!==0)throw new Error('Android command failed.');};
 const server=http.createServer(async(req,res)=>{
  try {
-  if(req.method!=='POST'||req.url!=='/fixture') {res.writeHead(404).end();return;}
+  if(req.method!=='POST'||!['/fixture','/cost-payment-fixture'].includes(req.url)) {res.writeHead(404).end();return;}
   let body='';for await(const part of req){body+=part;if(body.length>4096)throw new Error('Request too large');}
-  const {rideId,action}=JSON.parse(body);
+  const data = JSON.parse(body);
+  if (req.url === '/cost-payment-fixture') {
+   if (!costPaymentsOnly || !/^bb2[1-5]$/.test(data.scenario)) throw new Error('Invalid cost fixture request');
+   const fixture = await seedCostPaymentFixture(app, db, data.scenario);
+   res.writeHead(200, {'Content-Type': 'application/json'}).end(JSON.stringify(fixture));
+   return;
+  }
+  const {rideId,action}=data;
   if(typeof rideId!=='string'||!rideId||rideId.includes('/'))throw new Error('Invalid test ride');
   const ref=db.doc(`rides/${rideId}`),ride=await ref.get();
   if(!ride.exists||!String(ride.get('title')).startsWith('Device test'))throw new Error('Only isolated test fixtures may be changed');
@@ -41,6 +57,13 @@ const server=http.createServer(async(req,res)=>{
   finally {clearTimeout(timer);}
   if(code!==0 || !/OK \(1 test\)/.test(output) || (checkpoint && !output.includes(checkpoint)))throw new Error(`Android workflow phase did not pass: ${method}`);
  }
+ if (costPaymentsOnly) {
+  for (const [method, checkpoint] of costPaymentTests) {
+   await instrument(method, checkpoint);
+  }
+  console.log('All five cost and payment Espresso tests passed.');
+  return;
+ }
  await instrument('multipleAccountsThroughRealAndroidScreens','Cancellation closed the pending request across accounts');
  run(['shell','am','force-stop','com.example.trojanrideshare.integrationtest']);
  await instrument('accountAndRequestsSurviveProcessRestart','Sign-in and server request state survived a full app process restart');
@@ -57,5 +80,5 @@ const server=http.createServer(async(req,res)=>{
  console.log('Full Android form/navigation workflow passed against demo emulators. Location mode: '+(process.env.TROJAN_TEST_LOCATIONS || 'real')+'.');
 })().catch(error=>{console.error(error.message);process.exitCode=1;}).finally(async()=>{
  server.close();await deleteApp(app);
- spawnSync(adb,['-s',device,'shell','am','start','-n','com.example.trojanrideshare/.MainActivity'],{stdio:'ignore'});
+ if (!costPaymentsOnly) spawnSync(adb,['-s',device,'shell','am','start','-n','com.example.trojanrideshare/.MainActivity'],{stdio:'ignore'});
 });

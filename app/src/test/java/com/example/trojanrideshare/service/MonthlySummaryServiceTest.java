@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MonthlySummaryServiceTest {
@@ -121,6 +122,29 @@ public class MonthlySummaryServiceTest {
         assertEquals(5000, result.getMyShareCents());
         assertEquals(2000, result.getPaidCents());
         assertEquals(3000, result.getUnpaidCents());
+    }
+
+    @Test
+    public void wb25_totalsOnlyTheSelectedRidersSharesForTheMonth() {
+        Ride firstInNovember = completedRide(2026, 11, 1, 2_000L, 1_000L, true);
+        firstInNovember.getCostShares().put("bob", new CostShare("bob", 1_000L));
+        Ride lastInNovember = completedRide(2026, 11, 30, 500L, 500L, false);
+        Ride octoberRide = completedRide(2026, 10, 31, 700L, 700L, false);
+        Ride bobsRide = completedRide(2026, 11, 15, 900L, 900L, false);
+        bobsRide.setCostShares(Collections.singletonMap("bob", new CostShare("bob", 900L)));
+
+        List<Ride> rides =
+                Arrays.asList(octoberRide, firstInNovember, bobsRide, lastInNovember);
+
+        MonthlySummary november = service.calculate(rides, "alice", YearMonth.of(2026, 11));
+        assertEquals(2, november.getRideCount());
+        assertEquals(1_500L, november.getMyShareCents());
+        assertEquals(1_000L, november.getPaidCents());
+        assertEquals(500L, november.getUnpaidCents());
+
+        MonthlySummary december = service.calculate(rides, "alice", YearMonth.of(2026, 12));
+        assertEquals(0, december.getRideCount());
+        assertEquals(0L, december.getMyShareCents());
     }
 
     @Test
