@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-16",
+  "baseline": "a86750d20c87d8663094c15dc13e29c7fa0307a9",
+  "author": "Riya",
+  "blackBox": {
+    "tests": 5,
+    "failed": 0,
+    "ignored": 0,
+    "android": "Pixel 4 AVD, Android 13, API 33",
+    "project": "demo-trojan-account-profile",
+    "applicationId": "com.example.trojanrideshare.accountprofiletest"
+  },
+  "whiteBox": {
+    "tests": 5,
+    "failed": 0,
+    "skipped": 0,
+    "tool": "JUnit 4 and Mockito 5.23.0"
+  },
+  "regression": {
+    "jvmTests": 245,
+    "failed": 0,
+    "skipped": 0,
+    "lint": "passed with existing warnings"
+  },
+  "coverage": {
+    "tool": "JaCoCo 0.8.14",
+    "scope": [
+      "AuthService",
+      "RegistrationValidator"
+    ],
+    "suite": "AccountProfileWhiteBoxTest only",
+    "total": {
+      "branch": {
+        "covered": 39,
+        "missed": 17
+      },
+      "line": {
+        "covered": 49,
+        "missed": 30
+      }
+    },
+    "classes": {
+      "AuthService": {
+        "branch": {
+          "covered": 16,
+          "missed": 10
+        },
+        "line": {
+          "covered": 36,
+          "missed": 25
+        }
+      },
+      "RegistrationValidator": {
+        "branch": {
+          "covered": 23,
+          "missed": 7
+        },
+        "line": {
+          "covered": 13,
+          "missed": 5
+        }
+      }
+    }
+  }
+}

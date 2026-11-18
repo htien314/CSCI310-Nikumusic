@@ -62,11 +62,31 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     testImplementation(libs.junit)
+    testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation(libs.arch.core.testing)
     // Android's org.json is a stub in local unit tests; this is the real implementation.
     testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+}
+
+// Run with testDebugUnitTest --tests '*AccountProfileWhiteBoxTest' so these
+// figures describe only Member 1's five JUnit cases, not the whole team suite.
+tasks.register<JacocoReport>("accountProfileCoverage") {
+    dependsOn("testDebugUnitTest")
+    executionData.setFrom(layout.buildDirectory.file("jacoco/testDebugUnitTest.exec"))
+    sourceDirectories.setFrom(files("src/main/java"))
+    classDirectories.setFrom(fileTree(layout.buildDirectory.dir(
+        "intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+    )) {
+        include("com/example/trojanrideshare/service/AuthService*.class")
+        include("com/example/trojanrideshare/service/RegistrationValidator.class")
+    })
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
 }
 
 // Run with testDebugUnitTest --tests '*RideManagementWhiteBoxTest' so these figures
