@@ -106,3 +106,28 @@ tasks.register<JacocoReport>("rideManagementCoverage") {
         csv.required.set(false)
     }
 }
+
+// All five feature areas, including shared domain models, utilities, and
+// ViewModels. UI screens and Firebase/Android adapters are outside JVM scope.
+// Run without --tests filters to measure the complete merged unit suite:
+// ./gradlew :app:testDebugUnitTest :app:teamCoverage --rerun-tasks
+tasks.register<JacocoReport>("teamCoverage") {
+    group = "verification"
+    description = "Reports JVM business-logic coverage across all five features."
+    dependsOn("testDebugUnitTest")
+    executionData.setFrom(layout.buildDirectory.file("jacoco/testDebugUnitTest.exec"))
+    sourceDirectories.setFrom(files("src/main/java"))
+    classDirectories.setFrom(fileTree(layout.buildDirectory.dir(
+        "intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+    )) {
+        include("com/example/trojanrideshare/service/**/*.class")
+        include("com/example/trojanrideshare/model/**/*.class")
+        include("com/example/trojanrideshare/util/**/*.class")
+        include("com/example/trojanrideshare/ui/**/*ViewModel*.class")
+    })
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
