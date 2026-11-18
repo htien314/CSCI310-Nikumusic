@@ -54,6 +54,33 @@ public class PaymentTrackingTest {
     }
 
     @Test
+    public void wb24_recordsOnlyTheRidersOwnPayment() {
+        RecordingRideRepository recordingRepository = new RecordingRideRepository();
+        recordingRepository.rides.put("ride1", ride);
+        CostService paymentService = new CostService(recordingRepository, null, () -> 1000L);
+
+        TestCallback denied = new TestCallback();
+        paymentService.markRiderPaid("ride1", "alice", "bob", denied);
+
+        assertFalse(denied.success);
+        assertNotNull(denied.error);
+        assertEquals("You can only mark your own share as paid.", denied.error.getMessage());
+        assertEquals(0, recordingRepository.updateCalls);
+        assertFalse(ride.getCostShares().get("alice").isPaid());
+        assertFalse(ride.getCostShares().get("bob").isPaid());
+
+        TestCallback accepted = new TestCallback();
+        paymentService.markRiderPaid("ride1", "bob", "bob", accepted);
+
+        assertNull(accepted.error);
+        assertTrue(accepted.success);
+        assertEquals(1, recordingRepository.updateCalls);
+        Map<String, CostShare> savedShares = recordingRepository.rides.get("ride1").getCostShares();
+        assertTrue(savedShares.get("bob").isPaid());
+        assertFalse(savedShares.get("alice").isPaid());
+    }
+
+    @Test
     public void organizerCanMarkOwnSharePaid() {
         TestCallback callback = new TestCallback();
 
@@ -143,6 +170,16 @@ public class PaymentTrackingTest {
         assertFalse(callback.success);
         assertNotNull(callback.error);
         assertFalse(ride.getCostShares().get("bob").isPaid());
+    }
+
+    private static class RecordingRideRepository extends FakeRideRepository {
+        int updateCalls;
+
+        @Override
+        public void update(String rideId, RideMutation mutation, Callback<Ride> callback) {
+            updateCalls++;
+            super.update(rideId, mutation, callback);
+        }
     }
 
     private static class TestCallback implements Callback<Ride> {

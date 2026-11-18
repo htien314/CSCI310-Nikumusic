@@ -1,0 +1,97 @@
+{
+  "date": "2026-11-18",
+  "baseCommit": "c23769c28f737f640b7b8bb342fe7c23a6b8d90f",
+  "tests": {
+    "tests": 267,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "counters": {
+    "INSTRUCTION": {
+      "covered": 5500,
+      "missed": 591
+    },
+    "BRANCH": {
+      "covered": 661,
+      "missed": 159
+    },
+    "LINE": {
+      "covered": 1195,
+      "missed": 131
+    },
+    "COMPLEXITY": {
+      "covered": 583,
+      "missed": 197
+    },
+    "METHOD": {
+      "covered": 320,
+      "missed": 45
+    },
+    "CLASS": {
+      "covered": 49,
+      "missed": 3
+    }
+  },
+  "classes": [
+    "com/example/trojanrideshare/model/User",
+    "com/example/trojanrideshare/model/SearchCriteria",
+    "com/example/trojanrideshare/model/CapacityStatus",
+    "com/example/trojanrideshare/model/SearchCriteria$Builder",
+    "com/example/trojanrideshare/model/JoinRequest",
+    "com/example/trojanrideshare/model/Ride",
+    "com/example/trojanrideshare/model/RideSortOrder",
+    "com/example/trojanrideshare/model/CostShare",
+    "com/example/trojanrideshare/model/Participant",
+    "com/example/trojanrideshare/model/Location",
+    "com/example/trojanrideshare/model/ActivityStatus",
+    "com/example/trojanrideshare/model/JoinRequest$Status",
+    "com/example/trojanrideshare/model/MonthlySummary",
+    "com/example/trojanrideshare/service/SearchService$1",
+    "com/example/trojanrideshare/service/MembershipTransition$Result",
+    "com/example/trojanrideshare/service/AuthService",
+    "com/example/trojanrideshare/service/LocationGateway$1",
+    "com/example/trojanrideshare/service/CostCalculator",
+    "com/example/trojanrideshare/service/MembershipTransition",
+    "com/example/trojanrideshare/service/RegistrationValidator",
+    "com/example/trojanrideshare/service/RideService",
+    "com/example/trojanrideshare/service/MembershipService",
+    "com/example/trojanrideshare/service/RideRuleException",
+    "com/example/trojanrideshare/service/CostService",
+    "com/example/trojanrideshare/service/SearchResult",
+    "com/example/trojanrideshare/service/SearchService",
+    "com/example/trojanrideshare/service/LocationGateway",
+    "com/example/trojanrideshare/service/CostTransition",
+    "com/example/trojanrideshare/service/HistoryService",
+    "com/example/trojanrideshare/service/MonthlySummaryService",
+    "com/example/trojanrideshare/ui/membership/MembershipViewModel",
+    "com/example/trojanrideshare/ui/membership/MembershipViewModel$2",
+    "com/example/trojanrideshare/ui/membership/MembershipViewModel$1",
+    "com/example/trojanrideshare/ui/membership/MembershipViewModel$3",
+    "com/example/trojanrideshare/ui/ride/CreateRideViewModel$3",
+    "com/example/trojanrideshare/ui/ride/CreateRideViewModel$4",
+    "com/example/trojanrideshare/ui/ride/CreateRideViewModel$1",
+    "com/example/trojanrideshare/ui/ride/CreateRideViewModel$2",
+    "com/example/trojanrideshare/ui/ride/RideDetailsViewModel",
+    "com/example/trojanrideshare/ui/ride/CreateRideViewModel",
+    "com/example/trojanrideshare/ui/ride/RideDetailsViewModel$3",
+    "com/example/trojanrideshare/ui/ride/RideDetailsViewModel$1",
+    "com/example/trojanrideshare/ui/ride/RideDetailsViewModel$2",
+    "com/example/trojanrideshare/util/Distance",
+    "com/example/trojanrideshare/util/Constants",
+    "com/example/trojanrideshare/util/MoneyParser",
+    "com/example/trojanrideshare/util/MoneyFormatter",
+    "com/example/trojanrideshare/util/SystemTimeClock",
+    "com/example/trojanrideshare/ui/search/SearchViewModel$3",
+    "com/example/trojanrideshare/ui/search/SearchViewModel$1",
+    "com/example/trojanrideshare/ui/search/SearchViewModel$2",
+    "com/example/trojanrideshare/ui/search/SearchViewModel"
+  ],
+  "scope": [
+    "service package",
+    "model package",
+    "util package",
+    "ui ViewModels"
+  ],
+  "exclusions": "Android screens and Firebase repository/adapter implementations; no Espresso coverage data merged"
+}

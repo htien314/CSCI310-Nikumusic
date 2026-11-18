@@ -68,6 +68,26 @@ public class CostTransitionTest {
     }
 
     @Test
+    public void wb22_assignsLeftoverCentToFirstParticipant() {
+        Ride ride = departedRide("charlie", "alice", "bob");
+        Map<String, CostShare> withRemainder =
+                CostTransition.complete(ride, "charlie", 1_000L, null, at(NOW));
+
+        assertEquals(3, withRemainder.size());
+        assertEquals(334L, withRemainder.get("charlie").getAmountCents());
+        assertEquals(333L, withRemainder.get("alice").getAmountCents());
+        assertEquals(333L, withRemainder.get("bob").getAmountCents());
+
+        Map<String, CostShare> withoutRemainder =
+                CostTransition.complete(ride, "charlie", 999L, null, at(NOW));
+
+        assertEquals(3, withoutRemainder.size());
+        assertEquals(333L, withoutRemainder.get("charlie").getAmountCents());
+        assertEquals(333L, withoutRemainder.get("alice").getAmountCents());
+        assertEquals(333L, withoutRemainder.get("bob").getAmountCents());
+    }
+
+    @Test
     public void complete_soloOrganizerPaysEverything() {
         assertEquals(1250, CostTransition.complete(departedRide("alice"), "alice", 1250, null, at(NOW))
                 .get("alice").getAmountCents());

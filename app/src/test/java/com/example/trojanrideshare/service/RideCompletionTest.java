@@ -79,6 +79,53 @@ public class RideCompletionTest {
         }
     }
 
+    @Test
+    public void wb21_completesFortyDollarRideWithFourEqualShares() {
+        ride.setParticipants(Arrays.asList(
+                new Participant("alice", "Alice", timestamp(NOW - 120_000)),
+                new Participant("bob", "Bob", timestamp(NOW - 110_000)),
+                new Participant("charlie", "Charlie", timestamp(NOW - 100_000)),
+                new Participant("dana", "Dana", timestamp(NOW - 90_000))
+        ));
+        ride.syncCapacityStatus();
+
+        costService.completeRide(RIDE_ID, "alice", 4_000L, null, callback);
+
+        assertNull(callback.error);
+        assertTrue(callback.success);
+
+        Ride savedRide = repository.rides.get(RIDE_ID);
+        assertEquals(ActivityStatus.COMPLETED, savedRide.getActivityStatus());
+        assertEquals(Long.valueOf(4_000L), savedRide.getActualCostCents());
+
+        Map<String, CostShare> shares = savedRide.getCostShares();
+        assertEquals(4, shares.size());
+        for (String riderId : Arrays.asList("alice", "bob", "charlie", "dana")) {
+            CostShare share = shares.get(riderId);
+            assertNotNull(share);
+            assertEquals(1_000L, share.getAmountCents());
+        }
+    }
+
+    @Test
+    public void wb23_rejectsNegativeFinalCostAndAllowsValidRetry() {
+        costService.completeRide(RIDE_ID, "alice", -1L, null, callback);
+
+        assertRejectedWithoutCompletion();
+        assertEquals("Total cost must be positive.", callback.error.getMessage());
+        assertEquals(ActivityStatus.ON_TIME,
+                repository.rides.get(RIDE_ID).getActivityStatus());
+
+        TestCallback retry = new TestCallback();
+        costService.completeRide(RIDE_ID, "alice", 900L, null, retry);
+
+        assertNull(retry.error);
+        assertTrue(retry.success);
+        Ride savedRide = repository.rides.get(RIDE_ID);
+        assertEquals(ActivityStatus.COMPLETED, savedRide.getActivityStatus());
+        assertEquals(Long.valueOf(900L), savedRide.getActualCostCents());
+    }
+
     // Only the organizer may complete the ride.
     @Test
     public void nonOrganizerCannotComplete() {
