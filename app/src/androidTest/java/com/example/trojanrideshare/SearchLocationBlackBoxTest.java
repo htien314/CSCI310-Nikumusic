@@ -122,7 +122,9 @@ public class SearchLocationBlackBoxTest {
 
         onView(withText("BB11 USC to LAX")).perform(scrollTo(), click());
         waitFor(() -> onView(withId(R.id.ride_title)).check(matches(withText("BB11 USC to LAX"))));
-        waitText(containsString("Search Seeder"));
+        // The organizer's name also appears in the participants row, so check the organizer row itself.
+        waitFor(() -> onView(allOf(withId(R.id.detail_value), isDescendantOfA(withId(R.id.row_organizer))))
+                .check(matches(withText("Search Seeder"))));
     }
 
     // ------------------------------------------------------------------ BB12
