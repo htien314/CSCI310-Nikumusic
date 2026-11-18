@@ -314,7 +314,7 @@ public class FullAppEmulatorTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(()->((NavHostFragment)activity.getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment)).getNavController().navigate(action,args));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
     }
-    private void fill(int id,String value) { onView(withId(id)).perform(scrollTo(),replaceText(value)); }
+    private void fill(int id,String value) { onView(withId(id)).perform(scrollTo(),replaceText(value),closeSoftKeyboard()); }
     private void tap(int id) throws Exception { waitFor(()->onView(withId(id)).check(matches(allOf(withEffectiveVisibility(Visibility.VISIBLE),isEnabled())))); onView(withId(id)).perform(scrollTo(),click()); }
     private void tapText(String text) throws Exception { waitFor(()->onView(allOf(withText(text),isAssignableFrom(android.widget.Button.class))).check(matches(isEnabled()))); onView(allOf(withText(text),isAssignableFrom(android.widget.Button.class))).perform(scrollTo(),click()); }
     private void tapDialog(String text) { onView(allOf(withText(equalToIgnoringCase(text)),isAssignableFrom(android.widget.Button.class))).inRoot(androidx.test.espresso.matcher.RootMatchers.isDialog()).perform(click()); }
