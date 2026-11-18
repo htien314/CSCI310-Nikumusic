@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- API 37+ blocks private-network hosts such as 10.0.2.2 (Firebase emulators) without this. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+
     <application
         android:networkSecurityConfig="@xml/network_security_config" />
 </manifest>
